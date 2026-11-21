@@ -45,6 +45,8 @@ export const AGENT_TASK_STATUS_MAP = {
   failed: { label: "失败", text: "text-danger", bg: "bg-danger/15" },
 } as const;
 
-/** 允许上传的文件类型与大小上限（契约待定稿，先按立项范围 PDF/图片/TXT） */
-export const UPLOAD_ACCEPT = ".pdf,.png,.jpg,.jpeg,.txt";
-export const UPLOAD_MAX_SIZE = 10 * 1024 * 1024;
+/** 允许上传的文件类型与大小上限（契约 docs/api-specification.md 4.1：≤20MB，pdf/docx/xlsx/txt/md/png/jpg） */
+export const UPLOAD_ACCEPT = ".pdf,.docx,.xlsx,.txt,.md,.png,.jpg,.jpeg";
+export const UPLOAD_MAX_SIZE = 20 * 1024 * 1024;
+/** 上传大小上限的展示文案（MB），避免组件层硬编码与常量不同步 */
+export const UPLOAD_MAX_SIZE_MB = UPLOAD_MAX_SIZE / (1024 * 1024);

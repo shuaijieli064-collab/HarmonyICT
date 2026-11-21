@@ -2,7 +2,7 @@
 
 import { useCallback, useId, useRef, useState } from "react";
 import { cn, formatSize } from "@/lib/utils";
-import { UPLOAD_ACCEPT, UPLOAD_MAX_SIZE } from "@/lib/constants";
+import { UPLOAD_ACCEPT, UPLOAD_MAX_SIZE, UPLOAD_MAX_SIZE_MB } from "@/lib/constants";
 import { uploadFile } from "@/services/upload";
 import type { ExtractResult, UploadFileItem } from "@/types";
 
@@ -22,7 +22,7 @@ export default function UploadPanel() {
       setError(null);
       for (const file of Array.from(fileList)) {
         if (file.size > UPLOAD_MAX_SIZE) {
-          setError(`文件「${file.name}」超过大小上限 10MB`);
+          setError(`文件「${file.name}」超过大小上限 ${UPLOAD_MAX_SIZE_MB}MB`);
           continue;
         }
         const id = `${Date.now()}-${file.name}`;
@@ -89,7 +89,9 @@ export default function UploadPanel() {
         )}
       >
         <p className="text-sm text-content">拖拽文件到此处，或点击选择</p>
-        <p className="text-xs text-muted">支持 PDF / 图片（PNG、JPG）/ TXT，单个不超过 10MB</p>
+        <p className="text-xs text-muted">
+          支持 PDF / Word / Excel / TXT / Markdown / 图片（PNG、JPG），单个不超过 {UPLOAD_MAX_SIZE_MB}MB
+        </p>
         <input
           ref={inputRef}
           type="file"
