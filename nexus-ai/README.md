@@ -63,6 +63,42 @@ mvn.cmd spring-boot:run -Dspring-boot.run.arguments="--nexus.ai.demo.enabled=tru
 | `nexus.ai.maas.temperature` | `NEXUS_AI_MAAS_TEMPERATURE` | 默认 0.1 |
 | `nexus.ai.ocr.*` | `NEXUS_AI_OCR_*` | IAM 用户名/密码/账号名/项目 ID |
 
+## 风险规则引擎（阶段三）
+
+实现：`com.nexus.ai.risk.DefaultRiskAnalysisProvider` + `risk/rules/` 下 4 条规则。纯计算，不访问数据库，入库由 A 的服务负责。
+
+| 规则 | 输入事实 / 事件 | 阈值 | level | ruleCode | riskType |
+| --- | --- | --- | --- | --- | --- |
+| 期限监控 | `task_due_at` / `goal_deadline` / `project_deadline` | ≤30 / ≤7 / ≤1 天 | low / mid / high | `DEADLINE_30D/7D/1D` | `contract_deadline` |
+| 保修/订阅到期 | `warranty_until` / `subscription_renewal_at` / `subscription_end_at` | 同上 | 同上 | `WARRANTY_EXPIRY_*` / `SUBSCRIPTION_EXPIRY_*` | `cert_expiry` / `contract_deadline` |
+| 日程冲突 | `events.occurredAt` | 同日 ≥2 项；同小时 → mid | low / mid | `SCHEDULE_CONFLICT_DAY/HOUR` | `other` |
+| 预算约束 | `budget_limit` + `subscription_price`（按 `subscription_cycle` 折算月度） | ≥80% mid，≥100% high | mid / high | `BUDGET_WARNING/OVERSPENT` | `other` |
+
+每条风险输出 `ruleCode`、等级、触发说明和证据事实 ID，模型不参与结论。
+
+> `riskType` 受 A 的 DDL 枚举限制（`cert_expiry/contract_deadline/asset_concentration/data_staleness/other`）。日程冲突与预算约束暂无专属枚举，暂用 `other`；建议 A 在阶段二扩展枚举。
+
+## Agent 工具编排（阶段四）
+
+实现：`com.nexus.ai.agent.DefaultAgentOrchestratorProvider` + `AgentToolRegistry` + `AgentIntentParser`。
+只产出候选计划，不落库、不执行；`agent_action_logs` 持久化与 L2 授权由 A 的编排服务负责。
+
+工具白名单（未注册的 `actionType` 不会出现在计划中）：
+
+| actionType | level | targetType | 说明 |
+| --- | --- | --- | --- |
+| `read_fact` | L0 | fact | 只读当前有效事实 |
+| `read_event` | L0 | event | 只读事件时间线 |
+| `create_task` | L1 | task | 创建待办，执行前需向用户展示 |
+| `update_fact` | L2 | fact | 更新世界模型事实，须用户授权后执行 |
+
+意图规则（规则驱动，可复现）：
+
+- 「查看 / 汇总 / 整理 / 有哪些」→ 只读计划（L0）
+- 「待办 / 任务 / 提醒 / 安排」→ `create_task`（L1），自动关联最近到期的保修/订阅/任务事实
+- 「更新 / 修改 / 改到」→ `update_fact`（L2），需同时定位到唯一事实与新值；否则降级为只读计划并提示补充信息
+- 单次计划最多 10 个操作；空意图不生成操作
+
 ## 契约
 
 抽取输出以 `docs/extraction-schema.md` 为准；与 A 的 DTO 映射说明见该文档第 10、12 节。
