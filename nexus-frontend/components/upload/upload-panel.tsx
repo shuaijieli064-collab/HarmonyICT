@@ -2,20 +2,24 @@
 
 import { useCallback, useId, useRef, useState } from "react";
 import { cn, formatSize } from "@/lib/utils";
-import { UPLOAD_ACCEPT, UPLOAD_MAX_SIZE, UPLOAD_MAX_SIZE_MB } from "@/lib/constants";
-import { uploadFile } from "@/services/upload";
-import type { ExtractResult, UploadFileItem } from "@/types";
+import { FACT_STATUS_MAP, UPLOAD_ACCEPT, UPLOAD_MAX_SIZE, UPLOAD_MAX_SIZE_MB } from "@/lib/constants";
+import { pollExtraction, uploadFile } from "@/services/upload";
+import type { Fact, UploadFileItem } from "@/types";
 
-/** 文件上传交互组件：拖拽 + 点击选择 + 进度 + 抽取结果展示
- * 契约未就绪阶段走 services/upload.ts 的 Mock 实现，联调时无缝切换。
+/** 文件上传交互组件：拖拽 + 点击选择 + 两段进度 + 事实结果展示
+ * 契约 4.2 异步两步：上传拿 sourceId → 轮询事实（2s 间隔），当前走 services/upload.ts 的 Mock 实现，联调时无缝切换。
  */
 export default function UploadPanel() {
   const dropZoneId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [files, setFiles] = useState<UploadFileItem[]>([]);
-  const [results, setResults] = useState<Record<string, ExtractResult>>({});
+  const [results, setResults] = useState<Record<string, Fact[]>>({});
   const [error, setError] = useState<string | null>(null);
+
+  const updateFile = useCallback((id: string, patch: Partial<UploadFileItem>) => {
+    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  }, []);
 
   const startUpload = useCallback(
     (fileList: FileList) => {
@@ -25,29 +29,30 @@ export default function UploadPanel() {
           setError(`文件「${file.name}」超过大小上限 ${UPLOAD_MAX_SIZE_MB}MB`);
           continue;
         }
-        const id = `${Date.now()}-${file.name}`;
-        const item: UploadFileItem = {
-          id,
-          name: file.name,
-          size: file.size,
-          progress: 0,
-          status: "uploading",
-        };
-        setFiles((prev) => [...prev, item]);
-        void uploadFile(file, (progress, status) => {
-          setFiles((prev) =>
-            prev.map((f) => (f.id === id ? { ...f, progress, status } : f))
-          );
-        })
-          .then((result) => setResults((prev) => ({ ...prev, [id]: result })))
-          .catch(() =>
-            setFiles((prev) =>
-              prev.map((f) => (f.id === id ? { ...f, status: "failed" as const } : f))
-            )
-          );
+        const id = crypto.randomUUID();
+        setFiles((prev) => [
+          ...prev,
+          { id, name: file.name, size: file.size, progress: 0, status: "uploading" },
+        ]);
+        void (async () => {
+          try {
+            // 契约 4.2 第一步：上传仅落库，返回雪花数字字符串 sourceId
+            const sourceId = await uploadFile(file, (progress, phase) => {
+              updateFile(id, { progress, status: phase === "uploading" ? "uploading" : "extracting" });
+            });
+            // 契约 4.2 第二步：轮询 sourceId 名下事实，出现即抽取完成
+            const facts = await pollExtraction(sourceId, (progress) => {
+              updateFile(id, { progress, status: "extracting" });
+            });
+            updateFile(id, { status: "done" });
+            setResults((prev) => ({ ...prev, [id]: facts }));
+          } catch {
+            updateFile(id, { status: "failed" });
+          }
+        })();
       }
     },
-    []
+    [updateFile]
   );
 
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -138,14 +143,33 @@ export default function UploadPanel() {
             </div>
           )}
           {results[file.id] && (
-            <div className="mt-3 rounded-lg bg-base p-3 text-xs leading-relaxed text-secondary">
-              <p>
-                抽取完成：<span className="text-content">{results[file.id].factCount} 条事实</span>
-                ，实体：{results[file.id].entities.join("、")}
+            <div className="mt-3 space-y-2">
+              <p className="text-xs text-secondary">
+                抽取完成：<span className="text-content">{results[file.id].length} 条事实</span>
               </p>
-              <p className="mt-1 text-muted">
-                来源已登记，置信度 {results[file.id].confidence}（来源 ID：{results[file.id].sourceId}）
-              </p>
+              {results[file.id].map((fact) => (
+                <div key={fact.id} className="rounded-lg bg-base p-3 text-xs leading-relaxed">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-content">
+                      {fact.objectValue}
+                      {fact.unit ? ` ${fact.unit}` : ""}
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2 py-0.5",
+                        FACT_STATUS_MAP[fact.factStatus].bg,
+                        FACT_STATUS_MAP[fact.factStatus].text
+                      )}
+                    >
+                      {FACT_STATUS_MAP[fact.factStatus].label}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-muted">
+                    置信度 {fact.confidence}
+                    {fact.evidence ? ` · ${fact.evidence}` : ""}
+                  </p>
+                </div>
+              ))}
             </div>
           )}
         </div>

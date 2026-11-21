@@ -45,6 +45,13 @@ export const AGENT_TASK_STATUS_MAP = {
   failed: { label: "失败", text: "text-danger", bg: "bg-danger/15" },
 } as const;
 
+/** 事实可信状态 → 展示文案与配色（factStatus 暂定值，以 B 主笔的 extraction-schema.md 为准） */
+export const FACT_STATUS_MAP = {
+  confirmed: { label: "已确认", text: "text-success", bg: "bg-success/15" },
+  inferred: { label: "推断", text: "text-warning", bg: "bg-warning/15" },
+  unverified: { label: "待核实", text: "text-muted", bg: "bg-secondary/15" },
+} as const;
+
 /** 允许上传的文件类型与大小上限（契约 docs/api-specification.md 4.1：≤20MB，pdf/docx/xlsx/txt/md/png/jpg） */
 export const UPLOAD_ACCEPT = ".pdf,.docx,.xlsx,.txt,.md,.png,.jpg,.jpeg";
 export const UPLOAD_MAX_SIZE = 20 * 1024 * 1024;

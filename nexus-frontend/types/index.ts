@@ -73,10 +73,42 @@ export interface UploadFileItem {
   status: UploadStatus;
 }
 
-/** 抽取结果摘要（Mock 阶段与 B 的 extraction-schema 对齐） */
-export interface ExtractResult {
+/** 抽取文件状态（契约 4.3 来源列表 status） */
+export type SourceStatus = "pending" | "parsing" | "parsed" | "failed";
+
+/** 分页响应包裹（契约 1 通用约定：records/total/page/pageSize） */
+export interface PageResult<T> {
+  records: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 事实值类型（契约 5.2） */
+export type FactValueType = "string" | "number" | "date" | "boolean";
+
+/** 事实生命周期状态（契约 5.2） */
+export type FactStatus = "active" | "superseded" | "retracted";
+
+/** 事实可信状态（暂定值，以 B 主笔的 extraction-schema.md 为准） */
+export type FactConfidenceStatus = "confirmed" | "inferred" | "unverified";
+
+/** 世界模型事实（契约 5.2 响应结构，BIGINT 字段一律 string） */
+export interface Fact {
+  id: string;
+  subjectId: string;
+  predicate: string;
+  objectValue: string;
+  valueType: FactValueType;
+  unit: string | null;
+  normalizedValue: string;
+  evidence: string;
   sourceId: string;
-  factCount: number;
-  entities: string[];
   confidence: number;
+  validFrom: string;
+  validUntil: string | null;
+  status: FactStatus;
+  factStatus: FactConfidenceStatus;
+  createdAt: string;
+  updatedAt: string;
 }
