@@ -36,6 +36,9 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 nexus:
+  # 存储实现切换：local（默认，本地磁盘）/ obs（生产，华为云 OBS）
+  storage:
+    type: local
   jwt:
     # 密钥只走配置/环境变量，禁止硬编码提交（规范 2.4）；生产由环境变量覆盖
     secret: ${NEXUS_JWT_SECRET:local-dev-secret-please-override-in-production-must-be-long-enough-256bit}

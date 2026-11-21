@@ -18,10 +18,13 @@ spring:
 nexus:
   jwt:
     secret: ${NEXUS_JWT_SECRET}
+  # 生产环境文件存储走华为云 OBS（本地联调用 local 磁盘实现）
+  storage:
+    type: obs
   obs:
     endpoint: ${NEXUS_OBS_ENDPOINT:https://obs.cn-north-4.myhuaweicloud.com}
     bucket: ${NEXUS_OBS_BUCKET:nexus-demo}
-    # AK/SK 只走环境变量，见 TODO(A, 阶段二): 接入 OBS SDK 后读取
+    # AK/SK 只走环境变量（规范 2.4 红线），部署时由云上凭据管理注入
     access-key: ${NEXUS_OBS_AK:}
     secret-key: ${NEXUS_OBS_SK:}
 
