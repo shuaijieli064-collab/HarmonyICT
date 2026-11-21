@@ -556,22 +556,51 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
 | --- | --- |
 | `subject_ref` | `subject_id`（经实体映射表转换） |
 | `predicate` | `predicate` |
-| `object_value` | `object_value`（建议 JSONB 或 TEXT，见待确认项 1） |
-| `value_type` | `value_type` |
-| `unit` | `unit` |
-| `normalized_value` | `normalized_value` |
+| `object_value` | `object_value`（A 定稿为 TEXT，number/boolean 落库前序列化为字符串） |
+| `value_type` | 数据库暂无对应列，随 `extra.valueType` 透传 |
+| `unit` | 数据库暂无对应列，随 `extra.unit` 透传 |
+| `normalized_value` | 数据库暂无对应列，随 `extra.normalizedValue` 透传 |
 | `confidence` | `confidence` |
-| `fact_status` | `fact_status` |
+| `fact_status` | 数据库暂无对应列，随 `extra.factStatus` 透传 |
 | `valid_from` | `valid_from` |
 | `valid_until` | `valid_until` |
 | `source_id` | `source_id` |
-| `evidence` | 证据表或 `world_facts.evidence`（JSONB，见待确认项 6） |
+| `evidence` | 数据库暂无证据列，随 `extra.evidence` 透传（textSnippet/page） |
 | — | `user_id`（由服务端从 JWT 注入，**禁止来自抽取结果**） |
 | — | `created_at` / `updated_at`（数据库生成） |
 
 ### 10.4 `world_events` / `tasks`
 
 `event_id` / `task_id` 为临时 ID，入库生成真实主键；`related_entity_refs` 需先解析为真实 ID，解析失败的关联丢弃并记 `W-NO-ENTITY`。`source_id`、`confidence`、`evidence` 同样透传。
+
+### 10.5 AI DTO `extra` 键约定（与 A 的 `ExtractionRequest.ExtractedFact` 对齐）
+
+A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / predicate / objectValue / confidence / extra`，完整抽取信息通过 `extra` 透传。键名固定如下，实现方（B）与入库方（A）均不得运行时改名：
+
+| `extra` 键 | 类型 | 来源 | 入库处理 |
+| --- | --- | --- | --- |
+| `entityId` | string | 文档内临时实体 ID，如 `ent_1` | 不入库，仅用于关联 |
+| `entityType` | string | 本 Schema 的 `entity_type` | 按 10.6 映射为 `world_entities.entity_type` |
+| `valueType` | string | `fact.value_type` | 暂存，数据库无对应列 |
+| `unit` | string \| null | `fact.unit` | 暂存，数据库无对应列 |
+| `normalizedValue` | string \| null | `fact.normalized_value` | 暂存，数据库无对应列 |
+| `factStatus` | string | `extracted` / `inferred` | 暂存，数据库无对应列 |
+| `validFrom` | string \| null | `YYYY-MM-DD` | 转 TIMESTAMP 写 `world_facts.valid_from` |
+| `validUntil` | string \| null | `YYYY-MM-DD` | 转 TIMESTAMP 写 `world_facts.valid_until` |
+| `evidence` | object | `{ textSnippet, page }` | 暂存，数据库无证据列 |
+
+> `confidence < 0.50` 的事实已在 B 侧过滤，不会出现在 DTO 中；A 侧入库前只需再校验 `source_id` 与 `subject_id` 映射。
+
+### 10.6 `entity_type` 映射（本 Schema → `world_entities.entity_type`）
+
+| 本 Schema `entity_type` | A 的 `world_entities.entity_type` |
+| --- | --- |
+| `device` / `subscription` / `account` / `asset` | `asset` |
+| `organization` | `org` |
+| `person` | `person` |
+| `goal` / `task` / `course` / `project` / `other` | `event` |
+
+> A 的枚举无 `document`、`other`，因此本 Schema 的 `other` 统一落为 `event`，避免触发 DDL CHECK 约束失败。
 
 ---
 
@@ -595,22 +624,24 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
 
 ---
 
-## 12. 待成员 A 确认的问题（database-design.md 定稿时对齐）
+## 12. 与 A 的 `database-design.md` 对齐结果（2026-11-21）
 
-| # | 问题 | 本文默认假设 | 影响 |
+已对照 A 的阶段一定稿候选 DDL 逐条核对，现状如下：
+
+| # | 问题 | 定稿结论 / 现状 | 影响与处理 |
 | --- | --- | --- | --- |
-| 1 | `world_facts.object_value` 用 JSONB 还是 TEXT | 用 TEXT 存字符串，number/boolean 也序列化 | 若 JSONB，查询与类型校验更自然 |
-| 2 | `world_entities.attributes` / `aliases` 是否支持 JSONB | 支持 JSONB | 不支持则需拆子表 |
-| 3 | `world_facts` 是否保留 `value_type` / `unit` / `normalized_value` / `fact_status` | 保留 | 缺字段则前端置信度与归一化展示受影响 |
-| 4 | 事实唯一键与去重策略 | `(user_id, source_id, subject_id, predicate, valid_from)` 唯一 | 决定 upsert 实现 |
-| 5 | `world_sources` 是否含 `sha256` / `page_count` / `uploaded_at` | 均含 | 去重与防篡改依赖 |
-| 6 | `evidence` 存 `world_facts` JSONB 还是独立证据表 | 存 `world_facts.evidence`（JSONB） | 独立表更利于多证据关联 |
-| 7 | 实体跨文档合并策略 | 按 `entity_type + name` 精确匹配合并，冲突不自动合并 | 影响世界模型图谱质量 |
-| 8 | `source_id` 生成时机 | 上传成功即生成并写 `world_sources` | 抽取前必须已有记录 |
-| 9 | predicate 是否落字典表 | 暂存代码枚举 | 落表便于运营扩展 |
-| 10 | `world_risks` 是否需要引用 `fact_id` 列表 | 需要，JSONB 存关联事实 ID | 风险证据展示依赖 |
+| 1 | `world_facts.object_value` 用 JSONB 还是 TEXT | **TEXT** | number/boolean 落库前序列化为字符串 |
+| 2 | `world_entities.attributes` / `aliases` 是否支持 JSONB | `attributes` 为 JSONB；**无 `aliases` 列** | aliases 暂并入 attributes 或后续加列 |
+| 3 | `world_facts` 是否保留 `value_type` / `unit` / `normalized_value` / `fact_status` | **均无对应列** | 随 `extra` 透传，暂不落库 |
+| 4 | 事实唯一键与去重策略 | DDL 未声明唯一约束 | 应用层按 `(user_id, source_id, subject_id, predicate, valid_from)` 判重 |
+| 5 | `world_sources` 是否含 `sha256` / `page_count` / `uploaded_at` | **均无列**；现有 `file_name/obs_key/mime_type/file_size` | 去重需应用层计算或后续加列 |
+| 6 | `evidence` 存 `world_facts` JSONB 还是独立证据表 | **暂无证据列/表** | 随 `extra` 透传，暂不落库 |
+| 7 | 实体跨文档合并策略 | DDL 无唯一约束，A 文档约定按 `(user_id, entity_type, name)` 判重 | 待联调确认 |
+| 8 | `source_id` 生成时机 | 阶段二上传服务生成（A） | 抽取前必须已有 `world_sources` 记录 |
+| 9 | predicate 是否落字典表 | DDL 为 VARCHAR，无字典表 | 保持代码枚举（5.2 词表） |
+| 10 | `world_risks` 是否需要引用 `fact_id` 列表 | DDL 无事实关联列 | 风险证据展示需后续扩展 |
 
-> 以上 1–10 项在 A 的 `docs/database-design.md` 定稿后逐条确认；有冲突时以双方 PR 评审结论为准，并把本文升为 v1.1。
+> 上述第 2、3、5、6、10 项为**契约差异**，当前实现通过 `extra` 透传保证不丢数据，但未落库。建议 A 在阶段二 DDL 中补 `value_type/unit/normalized_value/fact_status/evidence` 列或独立证据表；在双方 PR 确认前，B 不擅自改 `init-postgres.sql` 与 `database-design.md`。
 
 ---
 

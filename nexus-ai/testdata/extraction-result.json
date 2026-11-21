@@ -1,0 +1,79 @@
+{
+  "schemaVersion" : "1.0",
+  "documentType" : "subscription",
+  "entities" : [ {
+    "entityId" : "ent_1",
+    "entityType" : "subscription",
+    "name" : "华为云音乐会员",
+    "confidence" : 0.9,
+    "evidence" : {
+      "textSnippet" : "华为云音乐会员订阅确认 您已开通华为云音乐会员 生效日期：2026-11-18 下次续费日期：2026-12-18 订阅",
+      "page" : 1
+    }
+  } ],
+  "facts" : [ {
+    "factId" : "fact_1",
+    "subjectRef" : "ent_1",
+    "predicate" : "subscription_renewal_at",
+    "objectValue" : "2026-12-18",
+    "valueType" : "date",
+    "unit" : null,
+    "normalizedValue" : "2026-12-18",
+    "confidence" : 0.92,
+    "factStatus" : "extracted",
+    "validFrom" : null,
+    "validUntil" : null,
+    "evidence" : {
+      "textSnippet" : "下次续费日期：2026-12-18",
+      "page" : 1
+    }
+  }, {
+    "factId" : "fact_2",
+    "subjectRef" : "ent_1",
+    "predicate" : "subscription_cycle",
+    "objectValue" : "monthly",
+    "valueType" : "string",
+    "unit" : null,
+    "normalizedValue" : null,
+    "confidence" : 0.9,
+    "factStatus" : "extracted",
+    "validFrom" : null,
+    "validUntil" : null,
+    "evidence" : {
+      "textSnippet" : "订阅周期",
+      "page" : 1
+    }
+  }, {
+    "factId" : "fact_3",
+    "subjectRef" : "ent_1",
+    "predicate" : "auto_renew",
+    "objectValue" : "true",
+    "valueType" : "boolean",
+    "unit" : null,
+    "normalizedValue" : null,
+    "confidence" : 0.9,
+    "factStatus" : "extracted",
+    "validFrom" : null,
+    "validUntil" : null,
+    "evidence" : {
+      "textSnippet" : "自动续费",
+      "page" : 1
+    }
+  } ],
+  "events" : [ {
+    "eventId" : "event_1",
+    "eventType" : "subscription_renewal",
+    "title" : "会员自动续费",
+    "startAt" : null,
+    "endAt" : null,
+    "dueAt" : "2026-12-18T00:00:00+08:00",
+    "relatedEntityRefs" : [ "ent_1" ],
+    "confidence" : 0.9,
+    "evidence" : {
+      "textSnippet" : "下次续费日期：2026-12-18",
+      "page" : 1
+    }
+  } ],
+  "tasks" : [ ],
+  "warnings" : [ ]
+}
