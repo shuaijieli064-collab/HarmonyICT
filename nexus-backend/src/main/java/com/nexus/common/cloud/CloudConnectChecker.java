@@ -34,8 +34,8 @@ public class CloudConnectChecker implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         Map<String, String> status = new LinkedHashMap<>();
 
-        try (Connection ignored = dataSource.getConnection()) {
-            status.put("rds", "OK: " + dataSource.getConnection().getMetaData().getDatabaseProductName());
+        try (Connection connection = dataSource.getConnection()) {
+            status.put("rds", "OK: " + connection.getMetaData().getDatabaseProductName());
         } catch (Exception e) {
             status.put("rds", "FAIL: " + e.getMessage());
         }

@@ -1,5 +1,6 @@
 package com.nexus.auth;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,22 +19,24 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtTokenProvider tokenProvider) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 契约规范 5：除登录注册与健康检查外全部必需认证
-                        .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/actuator/health").permitAll()
+                        // 契约规范 5：除注册登录与健康检查外全部必需认证
+                        .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login",
+                                "/api/v1/health", "/actuator/health").permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                // 未认证统一返回 401，与契约错误码 10105 对齐（默认入口点是 403）
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint((request, response, e) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
+                // 只在安全链内构造，避免过滤器被 Boot 重复注册到全局链（见过滤器类注释）
+                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider),
+                        UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

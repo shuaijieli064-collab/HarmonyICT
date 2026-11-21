@@ -17,6 +17,7 @@
 | 分页请求 | `page`（从 1 开始）、`pageSize`（默认 20，最大 100） |
 | 分页响应 | `data: { "records": [...], "total": 123, "page": 1, "pageSize": 20 }` |
 | 字段命名 | 小驼峰；禁止前端传 `userId` 参数 —— 服务端一律从 JWT 上下文解析 |
+| BIGINT 字段 | 所有 `id`/`userId`/`*Id` 字段服务端序列化为**字符串**（雪花 ID 超出 JS Number 安全整数范围，直接用数字会精度丢失），前端按 string 处理 |
 
 ### 错误码总表（与后端 `ResultCode.java` 同步维护）
 

@@ -6,9 +6,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * NEXUS 后端启动入口。
- * 为什么单独放在 api 包：启动类与接口入口属于应用层，业务模块（auth/world/ai 等）保持解耦，便于按目录边界分工。
+ * 为什么显式指定 scanBasePackages：启动类位于 api 包，业务模块在 com.nexus 下平级分包，
+ * 不显式扩大扫描范围会导致 auth/common 等模块的 Bean 无法注册。
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.nexus")
 @MapperScan("com.nexus.**.mapper")
 public class NexusApplication {
 
