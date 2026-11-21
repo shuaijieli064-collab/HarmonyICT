@@ -579,6 +579,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
 
 | `extra` 键 | 类型 | 来源 | 入库处理 |
 | --- | --- | --- | --- |
+| `sourceId` | string | 本 Schema 的 `source.source_id`；Demo 由 `nexus.ai.demo.source-id` 传入 | 写 `world_facts.source_id`（需 A 先落 `world_sources`） |
 | `entityId` | string | 文档内临时实体 ID，如 `ent_1` | 不入库，仅用于关联 |
 | `entityType` | string | 本 Schema 的 `entity_type` | 按 10.6 映射为 `world_entities.entity_type` |
 | `valueType` | string | `fact.value_type` | 暂存，数据库无对应列 |
@@ -640,8 +641,9 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
 | 8 | `source_id` 生成时机 | 阶段二上传服务生成（A） | 抽取前必须已有 `world_sources` 记录 |
 | 9 | predicate 是否落字典表 | DDL 为 VARCHAR，无字典表 | 保持代码枚举（5.2 词表） |
 | 10 | `world_risks` 是否需要引用 `fact_id` 列表 | DDL 无事实关联列 | 风险证据展示需后续扩展 |
+| 11 | `ExtractionRequest` 是否携带 `source_id` | 当前 DTO 无该字段，B 通过 `extra.sourceId` 透传 | Demo 可直接输出 sourceId；Provider 入库需 A 扩展 DTO 或在调用前注入 |
 
-> 上述第 2、3、5、6、10 项为**契约差异**，当前实现通过 `extra` 透传保证不丢数据，但未落库。建议 A 在阶段二 DDL 中补 `value_type/unit/normalized_value/fact_status/evidence` 列或独立证据表；在双方 PR 确认前，B 不擅自改 `init-postgres.sql` 与 `database-design.md`。
+> 上述第 2、3、5、6、10、11 项为**契约差异**，当前实现通过 `extra` 透传保证不丢数据，但未落库。建议 A 在阶段二 DDL 中补 `value_type/unit/normalized_value/fact_status/evidence` 列或独立证据表；在双方 PR 确认前，B 不擅自改 `init-postgres.sql` 与 `database-design.md`。
 
 ---
 

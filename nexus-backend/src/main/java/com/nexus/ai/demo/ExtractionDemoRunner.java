@@ -43,12 +43,14 @@ public class ExtractionDemoRunner implements ApplicationRunner {
     private final AiProperties properties;
     private final String inputFile;
     private final String outputFile;
+    private final String sourceId;
 
     public ExtractionDemoRunner(OcrProvider ocrProvider, LlmProvider llmProvider,
             ExtractionOutputParser outputParser, ObjectMapper objectMapper,
             AiProperties properties,
             @Value("${nexus.ai.demo.input:../nexus-ai/testdata/subscription.txt}") String inputFile,
-            @Value("${nexus.ai.demo.output:../nexus-ai/testdata/extraction-result.json}") String outputFile) {
+            @Value("${nexus.ai.demo.output:../nexus-ai/testdata/extraction-result.json}") String outputFile,
+            @Value("${nexus.ai.demo.source-id:00000000-0000-4000-8000-000000000001}") String sourceId) {
         this.ocrProvider = ocrProvider;
         this.llmProvider = llmProvider;
         this.outputParser = outputParser;
@@ -56,6 +58,7 @@ public class ExtractionDemoRunner implements ApplicationRunner {
         this.properties = properties;
         this.inputFile = inputFile;
         this.outputFile = outputFile;
+        this.sourceId = sourceId;
     }
 
     @Override
@@ -75,6 +78,7 @@ public class ExtractionDemoRunner implements ApplicationRunner {
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("sourceText", sourceText);
         variables.put("schemaHints", "device、subscription、goal、task");
+        variables.put("sourceId", sourceId);
 
         LlmRequest.LlmResponse response = llmProvider.complete(
                 new LlmRequest(TEMPLATE_ID, variables, null));

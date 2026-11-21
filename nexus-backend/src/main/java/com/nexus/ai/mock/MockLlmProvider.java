@@ -40,7 +40,10 @@ public class MockLlmProvider implements LlmProvider {
     public LlmRequest.LlmResponse complete(LlmRequest request) {
         if (EXTRACTION_TEMPLATE.equals(request.templateId())) {
             Object sourceText = request.variables() == null ? null : request.variables().get("sourceText");
-            String content = ruleBasedExtractor.extract(sourceText == null ? "" : String.valueOf(sourceText));
+            Object sourceId = request.variables() == null ? null : request.variables().get("sourceId");
+            String content = ruleBasedExtractor.extract(
+                    sourceText == null ? "" : String.valueOf(sourceText),
+                    sourceId == null ? null : String.valueOf(sourceId));
             return new LlmRequest.LlmResponse(content, "mock-rule-based", Map.of());
         }
         if (RISK_EXPLAIN_TEMPLATE.equals(request.templateId())) {

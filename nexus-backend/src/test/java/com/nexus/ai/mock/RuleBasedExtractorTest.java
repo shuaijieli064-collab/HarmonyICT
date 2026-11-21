@@ -13,6 +13,8 @@ import com.nexus.ai.extraction.ExtractionOutputParser;
 
 class RuleBasedExtractorTest {
 
+    private static final String SOURCE_ID = "00000000-0000-4000-8000-000000000001";
+
     private final RuleBasedExtractor extractor = new RuleBasedExtractor(new ObjectMapper());
     private final ExtractionOutputParser parser = new ExtractionOutputParser(new ObjectMapper());
 
@@ -26,9 +28,11 @@ class RuleBasedExtractorTest {
                 自动续费：已开启自动续费
                 """;
 
-        ExtractionOutputParser.ParsedExtraction parsed = parser.parse(extractor.extract(text), 0.50);
+        ExtractionOutputParser.ParsedExtraction parsed = parser.parse(extractor.extract(text, SOURCE_ID), 0.50);
 
         assertTrue(findFact(parsed, "subscription_renewal_at").isPresent());
+        assertEquals(SOURCE_ID,
+                findFact(parsed, "subscription_renewal_at").orElseThrow().extra().get("sourceId"));
         assertEquals("2026-12-18",
                 findFact(parsed, "subscription_renewal_at").map(ExtractionRequest.ExtractedFact::objectValue)
                         .orElse(""));

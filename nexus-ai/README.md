@@ -62,6 +62,7 @@ mvn.cmd spring-boot:run -Dspring-boot.run.arguments="--nexus.ai.demo.enabled=tru
 | `nexus.ai.maas.model` | `NEXUS_AI_MAAS_MODEL` | 模型名 |
 | `nexus.ai.maas.temperature` | `NEXUS_AI_MAAS_TEMPERATURE` | 默认 0.1 |
 | `nexus.ai.ocr.*` | `NEXUS_AI_OCR_*` | IAM 用户名/密码/账号名/项目 ID |
+| `nexus.ai.demo.source-id` | `NEXUS_AI_DEMO_SOURCE_ID` | Demo 输出事实的 `source_id`（默认演示 UUID，真实联调由 A 传入） |
 
 ## 风险规则引擎（阶段三）
 

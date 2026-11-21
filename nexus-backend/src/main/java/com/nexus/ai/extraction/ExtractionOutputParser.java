@@ -170,6 +170,7 @@ public class ExtractionOutputParser {
         Map<String, Object> extra = new LinkedHashMap<>();
         extra.put("entityId", raw.subjectRef());
         extra.put("entityType", entityType);
+        extra.put("sourceId", raw.node().path("sourceId").asText(null));
         extra.put("valueType", raw.valueType());
         extra.put("unit", raw.node().path("unit").asText(null));
         extra.put("normalizedValue", raw.node().path("normalizedValue").asText(null));

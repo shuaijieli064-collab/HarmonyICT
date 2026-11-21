@@ -40,6 +40,10 @@ public class RuleBasedExtractor {
     }
 
     public String extract(String sourceText) {
+        return extract(sourceText, null);
+    }
+
+    public String extract(String sourceText, String sourceId) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("schemaVersion", "1.0");
         List<Map<String, Object>> entities = new ArrayList<>();
@@ -144,6 +148,21 @@ public class RuleBasedExtractor {
                 tasks.add(taskNode);
                 addEvent(events, "event_2", "deadline", task.group(3).trim(),
                         null, due, "ent_2", 0.86, task.group());
+            }
+        }
+
+        if (sourceId != null) {
+            for (Map<String, Object> item : entities) {
+                item.put("sourceId", sourceId);
+            }
+            for (Map<String, Object> item : facts) {
+                item.put("sourceId", sourceId);
+            }
+            for (Map<String, Object> item : events) {
+                item.put("sourceId", sourceId);
+            }
+            for (Map<String, Object> item : tasks) {
+                item.put("sourceId", sourceId);
             }
         }
 

@@ -9,7 +9,8 @@
     "evidence" : {
       "textSnippet" : "华为云音乐会员订阅确认 您已开通华为云音乐会员 生效日期：2026-11-18 下次续费日期：2026-12-18 订阅",
       "page" : 1
-    }
+    },
+    "sourceId" : "00000000-0000-4000-8000-000000000001"
   } ],
   "facts" : [ {
     "factId" : "fact_1",
@@ -26,7 +27,8 @@
     "evidence" : {
       "textSnippet" : "下次续费日期：2026-12-18",
       "page" : 1
-    }
+    },
+    "sourceId" : "00000000-0000-4000-8000-000000000001"
   }, {
     "factId" : "fact_2",
     "subjectRef" : "ent_1",
@@ -42,7 +44,8 @@
     "evidence" : {
       "textSnippet" : "订阅周期",
       "page" : 1
-    }
+    },
+    "sourceId" : "00000000-0000-4000-8000-000000000001"
   }, {
     "factId" : "fact_3",
     "subjectRef" : "ent_1",
@@ -58,7 +61,8 @@
     "evidence" : {
       "textSnippet" : "自动续费",
       "page" : 1
-    }
+    },
+    "sourceId" : "00000000-0000-4000-8000-000000000001"
   } ],
   "events" : [ {
     "eventId" : "event_1",
@@ -72,7 +76,8 @@
     "evidence" : {
       "textSnippet" : "下次续费日期：2026-12-18",
       "page" : 1
-    }
+    },
+    "sourceId" : "00000000-0000-4000-8000-000000000001"
   } ],
   "tasks" : [ ],
   "warnings" : [ ]
