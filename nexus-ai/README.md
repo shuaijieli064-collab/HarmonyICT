@@ -64,6 +64,17 @@ mvn.cmd spring-boot:run -Dspring-boot.run.arguments="--nexus.ai.demo.enabled=tru
 | `nexus.ai.ocr.*` | `NEXUS_AI_OCR_*` | IAM 用户名/密码/账号名/项目 ID |
 | `nexus.ai.demo.source-id` | `NEXUS_AI_DEMO_SOURCE_ID` | Demo 输出事实的 `source_id`（默认演示 UUID，真实联调由 A 传入） |
 
+### 真实调用验收脚本（P0，需华为云凭据）
+
+```
+cp real-call.env.template real-call.env   # 填入真实凭据（real-call.env 已被 .gitignore 忽略）
+bash verify-real-call.sh                   # 依次验收 MaaS 文本抽取 + OCR 图片识别
+```
+
+脚本会校验 6 项必填凭据，缺一即退出，不会用空凭据空跑；输出文件仍为 `testdata/extraction-result.json`。
+阶段一 OCR 仅支持图片（`study-plan.png`），`invoice.pdf` 需阶段二 OBS 接入 PDF 转图后验证。
+凭据只走本地 `real-call.env` 或系统环境变量，**禁止写入仓库**。
+
 ## 风险规则引擎（阶段三）
 
 实现：`com.nexus.ai.risk.DefaultRiskAnalysisProvider` + `risk/rules/` 下 4 条规则。纯计算，不访问数据库，入库由 A 的服务负责。
