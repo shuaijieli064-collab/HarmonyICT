@@ -14,6 +14,25 @@ B 已完成抽取输出的全链路 `sourceId` 补齐（验收项 3 可追溯）
 
 ## P0 — 阻塞「抽取结果入库」（需 A 修改）
 
+### 0. ⚠️ 新增阻塞：`source_id` 类型三方不一致（2026-11-22 review 发现）
+
+这是比下列差异更优先的阻塞项，A 在 `f8acddc` 刚补充了 BIGINT 字符串约定，冲突因此坐实：
+
+| 来源 | `source_id` 类型 |
+| --- | --- |
+| B 的 `extraction-schema.md`（第 44/96/115/133/148 行） | `string(uuid)`，如 `00000000-0000-4000-8000-000000000001` |
+| A 的 `database-design.md` 第 4 节 | `world_sources.id BIGINT PRIMARY KEY`、`world_facts.source_id BIGINT REFERENCES` |
+| A 的 `api-specification.md` + `JacksonConfig.java`（`f8acddc`） | 所有 `*Id` 字段序列化为**字符串**（雪花 ID 防 JS 精度丢失），即 BIGINT 的数字字符串 |
+
+**后果**：B 产出的 UUID 字符串无法作为外键写入 A 的 `world_facts.source_id BIGINT` 列，联调时事实入库直接失败。
+
+**需 A 拍板（三选一）**：
+1. A 把 `world_sources.id` / 外键改为 UUID 或 `VARCHAR(36)`（贴合 B 的 schema，改动面涉及 A 的 DDL 与 API 示例）；
+2. B 把 `source_id` 改为数字字符串（B 的 schema 降级，与 UUID 追溯语义冲突，不推荐）；
+3. 增加「UUID ↔ 雪花 ID」映射表，抽取层保留 UUID、入库层转换。
+
+> B 不单方修改 schema 或 DDL，此项必须在 PR #1 review 中由 A 定夺后再两边对齐。
+
 ### 1. `ExtractionRequest` DTO 增加 `source_id`（对应 schema 第 12 节 #11）
 
 - **现状**：`nexus-backend/src/main/java/com/nexus/ai/dto/ExtractionRequest.java` 只有 `sourceText` / `schemaHints`，无 `source_id`。
