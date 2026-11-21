@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexus-postgres
+    environment:
+      POSTGRES_DB: nexus
+      POSTGRES_USER: nexus
+      # 本地联调专用，生产凭证走华为云 RDS 环境变量，禁止提交真实密码
+      POSTGRES_PASSWORD: nexus_local_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - nexus_pgdata:/var/lib/postgresql/data
+      # 首次启动自动执行 9 张核心表初始化 SQL（与 docs/database-design.md 同步）
+      - ../nexus-backend/src/main/resources/db/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-redis
+    command: ["redis-server", "--requirepass", "nexus_local_dev"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - nexus_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "nexus_local_dev", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  nexus_pgdata:
+  nexus_redisdata:

@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: nexus-backend
+  profiles:
+    active: local
+  jackson:
+    # 契约规范 5：时间格式 ISO 8601
+    date-format: yyyy-MM-dd'T'HH:mm:ss'Z'
+    time-zone: UTC
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    # Redis/OBS 未就绪时不阻塞健康检查，本地与云环境分别按 profile 控制
+    redis:
+      enabled: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+nexus:
+  jwt:
+    # 密钥只走配置/环境变量，禁止硬编码提交（规范 2.4）；生产由环境变量覆盖
+    secret: ${NEXUS_JWT_SECRET:local-dev-secret-please-override-in-production-must-be-long-enough-256bit}
+    # token 有效期 24h，退出后由 Redis 黑名单兜底（见 AuthServiceImpl）
+    expire-hours: 24
