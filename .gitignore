@@ -1,0 +1,25 @@
+# WorkBuddy 项目数据（非源码，不入库）
+.workbuddy/
+
+# 依赖与构建产物
+node_modules/
+target/
+.next/
+out/
+dist/
+build/
+
+# 环境与凭证
+.env
+.env.*
+*.pem
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 系统
+.DS_Store
+Thumbs.db
