@@ -131,7 +131,7 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 
 | 接口 | 说明 |
 | --- | --- |
-| `POST /api/v1/facts` | 创建：`{ "subjectId", "predicate": "monthly_income", "objectValue": "12000", "sourceId"(可选), "validFrom"(可选) }` |
+| `POST /api/v1/facts` | 创建：`{ "subjectId", "predicate": "monthly_income", "objectValue": "12000", "sourceId"(可选), "validFrom"(可选), "validUntil"(可选，证书类事实到期时间，CERT_EXPIRY_30D 规则依赖), "valueType"(可选), "unit"(可选), "normalizedValue"(可选), "evidence"(可选) }` |
 | `GET /api/v1/facts` | 分页：`page/pageSize/subjectId(可选)/predicate(可选)/sourceId(可选)/status(默认 active)`；`sourceId` 为抽取结果轮询入口（见 4.2） |
 | `GET /api/v1/facts/{id}` | 详情 |
 | `PUT /api/v1/facts/{id}` | 更新 objectValue：旧事实置 superseded，新事实落库（链式失效） |

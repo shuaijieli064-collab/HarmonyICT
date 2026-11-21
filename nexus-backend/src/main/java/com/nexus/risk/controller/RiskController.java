@@ -1,0 +1,53 @@
+package com.nexus.risk.controller;
+
+import com.nexus.auth.UserContext;
+import com.nexus.common.result.PageResult;
+import com.nexus.common.result.Result;
+import com.nexus.risk.dto.RiskDetailResponse;
+import com.nexus.risk.dto.RiskResponse;
+import com.nexus.risk.service.RiskService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * 风险接口，契约见 api-specification.md 6 节。风险只能由规则引擎产生，无创建入口。
+ */
+@RestController
+@RequestMapping("/api/v1/risks")
+public class RiskController {
+
+    private final RiskService riskService;
+
+    public RiskController(RiskService riskService) {
+        this.riskService = riskService;
+    }
+
+    @GetMapping
+    public Result<PageResult<RiskResponse>> list(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String riskType) {
+        return Result.ok(riskService.list(UserContext.get(), level, status, riskType, page, pageSize));
+    }
+
+    @GetMapping("/{id}")
+    public Result<RiskDetailResponse> get(@PathVariable Long id) {
+        return Result.ok(riskService.get(UserContext.get(), id));
+    }
+
+    @PutMapping("/{id}/acknowledge")
+    public Result<RiskResponse> acknowledge(@PathVariable Long id) {
+        return Result.ok(riskService.acknowledge(UserContext.get(), id));
+    }
+
+    @PutMapping("/{id}/resolve")
+    public Result<RiskResponse> resolve(@PathVariable Long id) {
+        return Result.ok(riskService.resolve(UserContext.get(), id));
+    }
+}

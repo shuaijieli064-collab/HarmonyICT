@@ -55,6 +55,8 @@ public class WorldFactServiceImpl implements WorldFactService {
         // 人工录入默认置信度 1.0；AI 抽取路径由 B 写入时显式设置抽取置信度
         fact.setConfidence(BigDecimal.ONE);
         fact.setValidFrom(request.validFrom() == null ? now : request.validFrom());
+        // 证书类事实的到期时间（CERT_EXPIRY_30D 规则依赖），人工登记与抽取写入均走此字段
+        fact.setValidUntil(request.validUntil());
         fact.setStatus("active");
         fact.setFactStatus("confirmed");
         fact.setCreatedAt(now);

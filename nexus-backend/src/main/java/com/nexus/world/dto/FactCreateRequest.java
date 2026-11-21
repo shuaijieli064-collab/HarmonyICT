@@ -34,5 +34,8 @@ public record FactCreateRequest(
 
         Long sourceId,
 
-        Instant validFrom) {
+        Instant validFrom,
+
+        // 手动登记证书类事实时用于承载到期时间（CERT_EXPIRY_30D 规则依赖）；抽取场景由 B 按 Schema 传入
+        Instant validUntil) {
 }
