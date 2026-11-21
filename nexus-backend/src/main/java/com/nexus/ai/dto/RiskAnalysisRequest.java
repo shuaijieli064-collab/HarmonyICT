@@ -20,7 +20,7 @@ public record RiskAnalysisRequest(List<FactSnapshot> facts, List<EventSnapshot> 
 
     /**
      * @param riskType        cert_expiry / contract_deadline / asset_concentration / data_staleness / other
-     * @param level           low / mid / high
+     * @param level           low / medium / high
      * @param ruleCode        规则标识（如 CERT_EXPIRY_30D），保证风险可追溯（world_risks.rule_code）
      * @param title           风险标题（world_risks.title）
      * @param description     触发原因与证据说明；必须由规则产出，模型解释另行经 LlmProvider 生成

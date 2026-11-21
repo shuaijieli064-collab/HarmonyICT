@@ -41,6 +41,9 @@
 | 50102 | 任务状态流转不合法 | 任务 |
 | 60101 | Agent 执行记录不存在 | Agent |
 | 60102 | Agent 操作未被授权 | Agent |
+| 90011 | 抽取请求缺少有效的来源 sourceId | 抽取校验 |
+| 90012 | 抽取结果不符合约定 Schema | 抽取校验 |
+| 90013 | 抽取谓词不在登记清单内 | 抽取校验 |
 | 90001 | 请求参数不合法 | 通用 |
 | 90002 | 资源不存在 | 通用 |
 | 90000 | 服务器内部错误 | 通用 |
@@ -90,12 +93,21 @@
 { "sourceId": "1948...", "fileName": "资产证明.pdf", "mimeType": "application/pdf", "fileSize": 1048576, "status": "pending" }
 ```
 
-### 4.2 来源列表 `GET /api/v1/sources`
+### 4.2 抽取结果获取方式（2026-11-22 确认，异步两步，契约先定）
+
+上传接口**只负责落库并返回 `sourceId`**，抽取由 B 的 AI 引擎后台异步完成，**不新增独立抽取结果接口**。前端获取流程：
+
+1. `POST /api/v1/sources/upload` → 拿到 `sourceId`（`status=pending`）。
+2. 轮询 `GET /api/v1/facts?sourceId=<sourceId>&status=active`（见 5.2）：有记录即抽取完成；为空则继续轮询（建议间隔 2s，超时 60s 后提示失败并检查来源详情 `status=failed`）。
+
+约定：`sourceId` 是后端上传接口分配的雪花数字字符串，B 侧抽取流程只做透传，**禁止自造 UUID**（PR #1 review 阻塞项 1 拍板结论）。
+
+### 4.3 来源列表 `GET /api/v1/sources`
 
 Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed）。
 响应 `data.records[]`：同 4.1 元素 + `createdAt`。
 
-### 4.3 来源详情 `GET /api/v1/sources/{sourceId}`
+### 4.4 来源详情 `GET /api/v1/sources/{sourceId}`
 
 ## 5. 世界模型 CRUD
 
@@ -120,7 +132,7 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 | 接口 | 说明 |
 | --- | --- |
 | `POST /api/v1/facts` | 创建：`{ "subjectId", "predicate": "monthly_income", "objectValue": "12000", "sourceId"(可选), "validFrom"(可选) }` |
-| `GET /api/v1/facts` | 分页：`page/pageSize/subjectId(可选)/predicate(可选)/status(默认 active)` |
+| `GET /api/v1/facts` | 分页：`page/pageSize/subjectId(可选)/predicate(可选)/sourceId(可选)/status(默认 active)`；`sourceId` 为抽取结果轮询入口（见 4.2） |
 | `GET /api/v1/facts/{id}` | 详情 |
 | `PUT /api/v1/facts/{id}` | 更新 objectValue：旧事实置 superseded，新事实落库（链式失效） |
 | `DELETE /api/v1/facts/{id}` | 撤回：status 置 retracted |
@@ -128,10 +140,11 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 响应 `data`（事实）：
 ```json
 { "id": "1948...", "subjectId": "1948...", "predicate": "monthly_income", "objectValue": "12000",
+  "valueType": "number", "unit": "元", "normalizedValue": "12000", "evidence": "每月工资流水 12000 元",
   "sourceId": "1948...", "confidence": 0.92, "validFrom": "...", "validUntil": null, "status": "active",
-  "createdAt": "...", "updatedAt": "..." }
+  "factStatus": "confirmed", "createdAt": "...", "updatedAt": "..." }
 ```
-`confidence` 0-1；`status` 取值：`active / superseded / retracted`。
+`confidence` 0-1；`status` 取值：`active / superseded / retracted`；`factStatus` 取值以 B 主笔的 `extraction-schema.md` 为准（暂定 `confirmed / inferred / unverified`）；`valueType` 取值：`string / number / date / boolean`。
 
 ### 5.3 事件
 
@@ -157,7 +170,7 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
   "description": "证书于 2027-01-20 到期", "entityId": "1948...", "ruleCode": "CERT_EXPIRY_30D",
   "status": "open", "createdAt": "...", "updatedAt": "..." }
 ```
-`level`：`low / mid / high`；`status`：`open / acknowledged / resolved`。
+`level`：`low / medium / high`（2026-11-22 由 mid 统一为 medium，前端按 medium 实现无需改动）；`status`：`open / acknowledged / resolved`。
 
 ## 7. 任务模块（阶段三实现）
 

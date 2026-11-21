@@ -37,6 +37,11 @@ public enum ResultCode {
     AGENT_RUN_NOT_FOUND(60101, "Agent 执行记录不存在"),
     AGENT_PERMISSION_DENIED(60102, "Agent 操作未被授权"),
 
+    // 信息抽取校验 9xxxx（对应 B 侧 extraction-schema.md 的 E-NO-SOURCE / E-SCHEMA / E-PREDICATE）
+    EXTRACTION_NO_SOURCE(90011, "抽取请求缺少有效的来源 sourceId"),
+    EXTRACTION_SCHEMA(90012, "抽取结果不符合约定 Schema"),
+    EXTRACTION_PREDICATE(90013, "抽取谓词不在登记清单内"),
+
     // 通用 9xxxx
     PARAM_INVALID(90001, "请求参数不合法"),
     RESOURCE_NOT_FOUND(90002, "资源不存在"),
