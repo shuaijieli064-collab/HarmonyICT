@@ -53,8 +53,13 @@ public class DefaultExtractionProvider implements ExtractionProvider {
         if (request == null || request.sourceText() == null || request.sourceText().isBlank()) {
             throw new BizException(ResultCode.PARAM_INVALID, "抽取原文不能为空");
         }
+        // sourceId 为 A 上传接口返回的雪花数字字符串，B 只透传，禁止自造 UUID（PR#1 拍板）
+        if (request.sourceId() == null || request.sourceId().isBlank()) {
+            throw new BizException(ResultCode.EXTRACTION_NO_SOURCE, "抽取请求缺少 sourceId");
+        }
 
         Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("sourceId", request.sourceId());
         variables.put("sourceText", request.sourceText());
         variables.put("schemaHints", joinHints(request.schemaHints()));
 
@@ -72,7 +77,7 @@ public class DefaultExtractionProvider implements ExtractionProvider {
             } catch (ExtractionSchemaException e) {
                 if (attempt >= maxRetries) {
                     log.error("抽取结果不符合 Schema，已重试 {} 次", maxRetries, e);
-                    throw new BizException(ResultCode.INTERNAL_ERROR, "抽取结果不符合 Schema: " + e.getMessage());
+                    throw new BizException(ResultCode.EXTRACTION_SCHEMA, "抽取结果不符合 Schema: " + e.getMessage());
                 }
                 log.warn("抽取结果不符合 Schema，准备第 {} 次重试: {}", attempt + 1, e.getMessage());
             }

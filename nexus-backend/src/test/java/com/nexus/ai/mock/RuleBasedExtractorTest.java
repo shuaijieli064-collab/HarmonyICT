@@ -13,7 +13,7 @@ import com.nexus.ai.extraction.ExtractionOutputParser;
 
 class RuleBasedExtractorTest {
 
-    private static final String SOURCE_ID = "00000000-0000-4000-8000-000000000001";
+    private static final String SOURCE_ID = "1948123456789012345";
 
     private final RuleBasedExtractor extractor = new RuleBasedExtractor(new ObjectMapper());
     private final ExtractionOutputParser parser = new ExtractionOutputParser(new ObjectMapper());

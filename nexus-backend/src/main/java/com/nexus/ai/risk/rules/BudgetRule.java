@@ -72,7 +72,7 @@ public class BudgetRule implements RiskRule {
         if (ratio < 0.8) {
             return List.of();
         }
-        String level = ratio >= 1.0 ? "high" : "mid";
+        String level = ratio >= 1.0 ? "high" : "medium";
         String ruleCode = ratio >= 1.0 ? "BUDGET_OVERSPENT" : "BUDGET_WARNING";
         long percent = Math.round(ratio * 100);
         String title = "订阅支出占月度预算 " + percent + "%";

@@ -81,10 +81,10 @@ bash verify-real-call.sh                   # 依次验收 MaaS 文本抽取 + OC
 
 | 规则 | 输入事实 / 事件 | 阈值 | level | ruleCode | riskType |
 | --- | --- | --- | --- | --- | --- |
-| 期限监控 | `task_due_at` / `goal_deadline` / `project_deadline` | ≤30 / ≤7 / ≤1 天 | low / mid / high | `DEADLINE_30D/7D/1D` | `contract_deadline` |
+| 期限监控 | `task_due_at` / `goal_deadline` / `project_deadline` | ≤30 / ≤7 / ≤1 天 | low / medium / high | `DEADLINE_30D/7D/1D` | `contract_deadline` |
 | 保修/订阅到期 | `warranty_until` / `subscription_renewal_at` / `subscription_end_at` | 同上 | 同上 | `WARRANTY_EXPIRY_*` / `SUBSCRIPTION_EXPIRY_*` | `cert_expiry` / `contract_deadline` |
-| 日程冲突 | `events.occurredAt` | 同日 ≥2 项；同小时 → mid | low / mid | `SCHEDULE_CONFLICT_DAY/HOUR` | `other` |
-| 预算约束 | `budget_limit` + `subscription_price`（按 `subscription_cycle` 折算月度） | ≥80% mid，≥100% high | mid / high | `BUDGET_WARNING/OVERSPENT` | `other` |
+| 日程冲突 | `events.occurredAt` | 同日 ≥2 项；同小时 → medium | low / medium | `SCHEDULE_CONFLICT_DAY/HOUR` | `other` |
+| 预算约束 | `budget_limit` + `subscription_price`（按 `subscription_cycle` 折算月度） | ≥80% medium，≥100% high | medium / high | `BUDGET_WARNING/OVERSPENT` | `other` |
 
 每条风险输出 `ruleCode`、等级、触发说明和证据事实 ID，模型不参与结论。
 

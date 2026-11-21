@@ -45,9 +45,27 @@
 
 ---
 
+## 处理结果（2026-11-22 更新，re-review 完成）
+
+A 在 `a6e5c92` 已全部落实，B 已同步，**所有阻塞项关闭**：
+
+| 原问题 | A 的处理 | B 的同步 |
+| --- | --- | --- |
+| ① source_id 类型冲突 | 拍板保持 BIGINT，DTO 加 `sourceId`，禁止自造 UUID | schema 改 `string(snowflake)`、Demo/测试默认雪花串、Provider 透传 `request.sourceId()`；新增 90011 校验与 3 个测试 |
+| ② 校验错误码缺失 | 补 `90011/90012/90013`（`EXTRACTION_NO_SOURCE/SCHEMA/PREDICATE`） | Provider 缺 sourceId 抛 90011、Schema 不符抛 90012；E-PREDICATE 仍为告警（见下） |
+| ③ fact_status 取值 | 三态 `confirmed/inferred/unverified`，待 B 确认后补 CHECK | **B 确认：接受三态**。映射 `extracted→confirmed`、`inferred` 不变、`unverified` 为 A 人工录入态（B 不产出）。请 A 补 CHECK 兜底 |
+| ④ level `mid` | 统一 `medium`（前端已按 medium） | 规则引擎 4 处输出 + 4 处测试断言 + README 全部改 medium |
+
+**需 A 留意的两点（不阻塞合并）：**
+- `E-PREDICATE`（谓词未登记）：B 现按**告警**处理（降权保留事实），未抛 90013 硬错误。若 A 要求硬阻断，请明确，B 再改 parser 抛 `ResultCode.EXTRACTION_PREDICATE`。
+- `fact_status` CHECK 兜底：B 已确认三态，请 A 在 DDL 补 `CHECK (fact_status IN ('confirmed','inferred','unverified'))`。
+
+**验证结果**：`mvn test` 25/25 通过；mock Demo sourceId=雪花串（0 UUID 残留）、factStatus=confirmed、facts=3/置信度 0.91；B 侧 `mid`/旧 UUID/`extracted` 全局零残留。
+
 ## 建议合入顺序
 
-1. A 拍板阻塞项 1/2，必要时在 `f8acddc` 后续提交中修 DDL/错误码。
+1. ~~A 拍板阻塞项 1/2~~ ✅ 已完成（`a6e5c92`）。
 2. PR #1 合并 develop。
-3. B 的 `feature/ai-b` 提 PR 合并 develop（已含对 A 接口的实现，预计无冲突）。
-4. 凭据到位后 B 跑真实 MaaS/OCR 验收（`verify-real-call.sh`）。
+3. B 的 `feature/ai-b` 提 PR 合并 develop（已 merge 最新 `backend-a`，无冲突）。
+4. A 补 `fact_status` CHECK（可随 PR #1 后续提交）；B 确认 E-PREDICATE 告警/硬错误语义。
+5. 凭据到位后 B 跑真实 MaaS/OCR 验收（`verify-real-call.sh`）。

@@ -32,7 +32,7 @@ class DefaultRiskAnalysisProviderTest {
         RiskAnalysisRequest.DetectedRisk risk = provider.analyze(request).risks().get(0);
 
         assertEquals("contract_deadline", risk.riskType());
-        assertEquals("mid", risk.level());
+        assertEquals("medium", risk.level());
         assertEquals("DEADLINE_7D", risk.ruleCode());
         assertEquals(List.of(1L), risk.evidenceFactIds());
     }
@@ -45,7 +45,7 @@ class DefaultRiskAnalysisProviderTest {
         RiskAnalysisRequest.DetectedRisk risk = provider.analyze(request).risks().get(0);
 
         assertEquals("cert_expiry", risk.riskType());
-        assertEquals("mid", risk.level());
+        assertEquals("medium", risk.level());
         assertEquals("WARRANTY_EXPIRY_7D", risk.ruleCode());
     }
 
@@ -80,7 +80,7 @@ class DefaultRiskAnalysisProviderTest {
         RiskAnalysisRequest.DetectedRisk risk = provider.analyze(request).risks().get(0);
 
         assertEquals("other", risk.riskType());
-        assertEquals("mid", risk.level());
+        assertEquals("medium", risk.level());
         assertEquals("SCHEDULE_CONFLICT_HOUR", risk.ruleCode());
         assertTrue(risk.title().contains("2 项日程"));
     }
@@ -96,7 +96,7 @@ class DefaultRiskAnalysisProviderTest {
         RiskAnalysisRequest.DetectedRisk risk = provider.analyze(request).risks().get(0);
 
         assertEquals("other", risk.riskType());
-        assertEquals("mid", risk.level());
+        assertEquals("medium", risk.level());
         assertEquals("BUDGET_WARNING", risk.ruleCode());
         assertTrue(risk.evidenceFactIds().containsAll(List.of(5L, 6L)));
     }

@@ -94,7 +94,7 @@ public final class RiskEvaluationContext {
         return Duration.between(analysisAt, due).toDays();
     }
 
-    /** 30 天内 low、7 天内 mid、1 天内 high；超过 30 天不产生风险。 */
+    /** 30 天内 low、7 天内 medium、1 天内 high；超过 30 天不产生风险。 */
     public static String levelForDays(long days) {
         if (days < 0) {
             return null;
@@ -103,7 +103,7 @@ public final class RiskEvaluationContext {
             return "high";
         }
         if (days <= 7) {
-            return "mid";
+            return "medium";
         }
         if (days <= 30) {
             return "low";

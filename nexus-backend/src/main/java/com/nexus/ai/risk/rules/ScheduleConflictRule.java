@@ -18,7 +18,7 @@ import com.nexus.ai.risk.RiskEvaluationContext;
 import com.nexus.ai.risk.RiskRule;
 
 /**
- * 日程冲突规则：同一天出现 2 项及以上事件即提示；若其中两项落在同一小时，升级为 mid。
+ * 日程冲突规则：同一天出现 2 项及以上事件即提示；若其中两项落在同一小时，升级为 medium。
  * 事件快照只有发生时间（occurredAt），没有结束时间，因此"冲突"按同日/同小时判定，
  * 不臆造时长（避免假阳性）。
  */
@@ -38,7 +38,7 @@ public class ScheduleConflictRule implements RiskRule {
                 continue;
             }
             boolean sameHour = hasOverlappingHour(events);
-            String level = sameHour ? "mid" : "low";
+            String level = sameHour ? "medium" : "low";
             String ruleCode = sameHour ? "SCHEDULE_CONFLICT_HOUR" : "SCHEDULE_CONFLICT_DAY";
             String title = entry.getKey() + " 有 " + events.size() + " 项日程"
                     + (sameHour ? "存在时间重叠" : "安排集中");

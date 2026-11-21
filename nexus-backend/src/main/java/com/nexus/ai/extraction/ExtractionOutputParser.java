@@ -106,7 +106,7 @@ public class ExtractionOutputParser {
             String objectValue = toObjectText(objectNode);
             String valueType = node.path("valueType").asText("string");
             double confidence = clamp(node.path("confidence").asDouble(0.50));
-            String factStatus = node.path("factStatus").asText("extracted");
+            String factStatus = node.path("factStatus").asText("confirmed");
             String snippet = node.path("evidence").path("textSnippet").asText("");
 
             if (snippet.isBlank()) {

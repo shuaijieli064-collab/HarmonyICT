@@ -41,7 +41,7 @@ ID 约定（本 Schema 只产出**文档内临时 ID**，最终主键由数据�
 
 | 字段 | 规则 | 是否入库 |
 | --- | --- | --- |
-| `source_id` | 由 A 在上传时生成，UUID；抽取阶段只透传 | 是，`world_sources.id` |
+| `source_id` | 由 A 的上传接口返回的雪花数字字符串（如 `1948123456789012345`）；抽取阶段**只透传，禁止自造 UUID** | 是，`world_sources.id`（BIGINT） |
 | `entity_id` | 文档内临时 ID，格式 `ent_<序号>`，如 `ent_1` | 否，映射为 `world_entities.id` |
 | `fact_id` | 文档内临时 ID，格式 `fact_<序号>` | 否 |
 | `event_id` | 文档内临时 ID，格式 `event_<序号>` | 否 |
@@ -93,7 +93,7 @@ ID 约定（本 Schema 只产出**文档内临时 ID**，最终主键由数据�
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `source_id` | string(uuid) | 是 | 由 A 上传时生成 |
+| `source_id` | string(snowflake) | 是 | A 上传接口返回的雪花数字字符串，透传 |
 | `file_name` | string | 是 | 原始文件名，如 `发票_京东_2026.pdf` |
 | `file_type` | string(enum) | 是 | `pdf` / `image` / `txt` |
 | `mime_type` | string | 是 | 如 `application/pdf`、`image/jpeg`、`text/plain` |
@@ -112,7 +112,7 @@ ID 约定（本 Schema 只产出**文档内临时 ID**，最终主键由数据�
 | `aliases` | string[] | 否 | 原文中的其他称呼 |
 | `attributes` | object | 否 | 实体扩展属性（如 `brand`、`model`、`serial_number`），键必须小驼峰 |
 | `confidence` | number | 是 | 0–1，见第 6 节 |
-| `source_id` | string(uuid) | 是 | 透传 |
+| `source_id` | string(snowflake) | 是 | A 上传接口返回的雪花数字字符串，透传 |
 | `evidence` | object | 是 | 见 4.6 |
 
 ### 4.3 `facts`（事实，入库核心）
@@ -127,10 +127,10 @@ ID 约定（本 Schema 只产出**文档内临时 ID**，最终主键由数据�
 | `unit` | string | 否 | 金额 `CNY`、时长 `day` / `month` / `year`；仅 number 允许 |
 | `normalized_value` | string | 否 | 归一化后的展示/检索值，如 `2026-03-15`、`P1Y` |
 | `confidence` | number | 是 | 0–1，见第 6 节 |
-| `fact_status` | string(enum) | 是 | `extracted`（原文直接得出）/ `inferred`（模型推断） |
+| `fact_status` | string(enum) | 是 | `confirmed`（原文直接得出）/ `inferred`（模型推断）/ `unverified`（未验证，A 侧人工录入态，B 不主动产出）；与 A 的 `world_facts.fact_status` 三态对齐 |
 | `valid_from` | string(date) | 否 | 事实生效日，规则见 5.2 |
 | `valid_until` | string(date) | 否 | 事实失效日；开放区间为 `null` |
-| `source_id` | string(uuid) | 是 | 透传 |
+| `source_id` | string(snowflake) | 是 | A 上传接口返回的雪花数字字符串，透传 |
 | `evidence` | object | 是 | 见 4.6 |
 
 ### 4.4 `events`（事件）
@@ -145,7 +145,7 @@ ID 约定（本 Schema 只产出**文档内临时 ID**，最终主键由数据�
 | `due_at` | string(date-time) | 否 | 到期/截止时间 |
 | `related_entity_refs` | string[] | 否 | 关联的 `entity_id` / `fact_id` |
 | `confidence` | number | 是 | 0–1 |
-| `source_id` | string(uuid) | 是 | 透传 |
+| `source_id` | string(snowflake) | 是 | A 上传接口返回的雪花数字字符串，透传 |
 | `evidence` | object | 是 | 见 4.6 |
 
 ### 4.5 `tasks`（资料中识别出的待办）
@@ -158,7 +158,7 @@ ID 约定（本 Schema 只产出**文档内临时 ID**，最终主键由数据�
 | `priority` | string(enum) | 否 | `high` / `medium` / `low`，缺省 `medium` |
 | `related_entity_refs` | string[] | 否 | 关联实体/事实 |
 | `confidence` | number | 是 | 0–1 |
-| `source_id` | string(uuid) | 是 | 透传 |
+| `source_id` | string(snowflake) | 是 | A 上传接口返回的雪花数字字符串，透传 |
 | `evidence` | object | 是 | 见 4.6 |
 
 > 这里的 `tasks` 是**资料里明确写出的任务**（如学习计划），不等于 Agent 生成的待办。Agent 待办由 `agent_runs` / `agent_action_logs` 记录。
@@ -366,6 +366,7 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
       "enum": ["invoice", "subscription", "study_plan", "warranty", "contract", "receipt", "other"]
     },
     "uuid": { "type": "string", "format": "uuid" },
+    "snowflakeId": { "type": "string", "pattern": "^[1-9][0-9]{17,18}$" },
     "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
     "date": { "type": "string", "format": "date" },
     "dateTime": { "type": "string", "format": "date-time" },
@@ -394,7 +395,7 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
         "obs_key", "sha256", "uploaded_at"
       ],
       "properties": {
-        "source_id": { "$ref": "#/$defs/uuid" },
+        "source_id": { "$ref": "#/$defs/snowflakeId" },
         "file_name": { "type": "string", "minLength": 1 },
         "file_type": { "type": "string", "enum": ["pdf", "image", "txt"] },
         "mime_type": { "type": "string", "minLength": 1 },
@@ -419,7 +420,7 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
         "aliases": { "type": "array", "items": { "type": "string" } },
         "attributes": { "type": "object", "additionalProperties": true },
         "confidence": { "$ref": "#/$defs/confidence" },
-        "source_id": { "$ref": "#/$defs/uuid" },
+        "source_id": { "$ref": "#/$defs/snowflakeId" },
         "evidence": { "$ref": "#/$defs/evidence" }
       }
     },
@@ -453,10 +454,10 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
         "unit": { "type": "string", "enum": ["CNY", "USD", "EUR", "day", "month", "year"] },
         "normalized_value": { "type": "string" },
         "confidence": { "$ref": "#/$defs/confidence" },
-        "fact_status": { "type": "string", "enum": ["extracted", "inferred"] },
+        "fact_status": { "type": "string", "enum": ["confirmed", "inferred", "unverified"] },
         "valid_from": { "$ref": "#/$defs/date" },
         "valid_until": { "type": ["string", "null"], "format": "date" },
-        "source_id": { "$ref": "#/$defs/uuid" },
+        "source_id": { "$ref": "#/$defs/snowflakeId" },
         "evidence": { "$ref": "#/$defs/evidence" }
       }
     },
@@ -478,7 +479,7 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
         "due_at": { "$ref": "#/$defs/dateTime" },
         "related_entity_refs": { "type": "array", "items": { "type": "string" } },
         "confidence": { "$ref": "#/$defs/confidence" },
-        "source_id": { "$ref": "#/$defs/uuid" },
+        "source_id": { "$ref": "#/$defs/snowflakeId" },
         "evidence": { "$ref": "#/$defs/evidence" }
       }
     },
@@ -493,7 +494,7 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
         "priority": { "type": "string", "enum": ["high", "medium", "low"] },
         "related_entity_refs": { "type": "array", "items": { "type": "string" } },
         "confidence": { "$ref": "#/$defs/confidence" },
-        "source_id": { "$ref": "#/$defs/uuid" },
+        "source_id": { "$ref": "#/$defs/snowflakeId" },
         "evidence": { "$ref": "#/$defs/evidence" }
       }
     },
@@ -557,11 +558,12 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
 | `subject_ref` | `subject_id`（经实体映射表转换） |
 | `predicate` | `predicate` |
 | `object_value` | `object_value`（A 定稿为 TEXT，number/boolean 落库前序列化为字符串） |
-| `value_type` | 数据库暂无对应列，随 `extra.valueType` 透传 |
-| `unit` | 数据库暂无对应列，随 `extra.unit` 透传 |
-| `normalized_value` | 数据库暂无对应列，随 `extra.normalizedValue` 透传 |
+| `value_type` | `value_type`（阶段二已补列） |
+| `unit` | `unit`（阶段二已补列） |
+| `normalized_value` | `normalized_value`（阶段二已补列） |
 | `confidence` | `confidence` |
-| `fact_status` | 数据库暂无对应列，随 `extra.factStatus` 透传 |
+| `fact_status` | `fact_status`（阶段二已补列，三态 confirmed/inferred/unverified） |
+| `evidence` | `evidence`（阶段二已补列，TEXT 存 JSON） |
 | `valid_from` | `valid_from` |
 | `valid_until` | `valid_until` |
 | `source_id` | `source_id` |
@@ -579,16 +581,16 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
 
 | `extra` 键 | 类型 | 来源 | 入库处理 |
 | --- | --- | --- | --- |
-| `sourceId` | string | 本 Schema 的 `source.source_id`；Demo 由 `nexus.ai.demo.source-id` 传入 | 写 `world_facts.source_id`（需 A 先落 `world_sources`） |
+| `sourceId` | string(snowflake) | 本 Schema 的 `source.source_id`，来自 A 上传接口返回值（B 只透传）；Demo 由 `nexus.ai.demo.source-id` 注入演示值 | 写 `world_facts.source_id`（BIGINT 外键，需 A 先落 `world_sources`） |
 | `entityId` | string | 文档内临时实体 ID，如 `ent_1` | 不入库，仅用于关联 |
 | `entityType` | string | 本 Schema 的 `entity_type` | 按 10.6 映射为 `world_entities.entity_type` |
-| `valueType` | string | `fact.value_type` | 暂存，数据库无对应列 |
-| `unit` | string \| null | `fact.unit` | 暂存，数据库无对应列 |
-| `normalizedValue` | string \| null | `fact.normalized_value` | 暂存，数据库无对应列 |
-| `factStatus` | string | `extracted` / `inferred` | 暂存，数据库无对应列 |
+| `valueType` | string | `fact.value_type` | 写 `world_facts.value_type`（阶段二已补列） |
+| `unit` | string \| null | `fact.unit` | 写 `world_facts.unit`（阶段二已补列） |
+| `normalizedValue` | string \| null | `fact.normalized_value` | 写 `world_facts.normalized_value`（阶段二已补列） |
+| `factStatus` | string | `confirmed` / `inferred` / `unverified`（见 4.3 节映射） | 写 `world_facts.fact_status`（阶段二已补列） |
 | `validFrom` | string \| null | `YYYY-MM-DD` | 转 TIMESTAMP 写 `world_facts.valid_from` |
 | `validUntil` | string \| null | `YYYY-MM-DD` | 转 TIMESTAMP 写 `world_facts.valid_until` |
-| `evidence` | object | `{ textSnippet, page }` | 暂存，数据库无证据列 |
+| `evidence` | object | `{ textSnippet, page }` | 序列化写 `world_facts.evidence`（阶段二已补列，TEXT 存 JSON） |
 
 > `confidence < 0.50` 的事实已在 B 侧过滤，不会出现在 DTO 中；A 侧入库前只需再校验 `source_id` 与 `subject_id` 映射。
 
@@ -627,23 +629,24 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
 
 ## 12. 与 A 的 `database-design.md` 对齐结果（2026-11-21）
 
-已对照 A 的阶段一定稿候选 DDL 逐条核对，现状如下：
+已对照 A 的阶段一定稿候选 DDL 逐条核对；**2026-11-22 更新**：A 在 `a6e5c92`（PR #1 review 拍板）中已落实多项差异，下表结论同步为最新。
 
 | # | 问题 | 定稿结论 / 现状 | 影响与处理 |
 | --- | --- | --- | --- |
 | 1 | `world_facts.object_value` 用 JSONB 还是 TEXT | **TEXT** | number/boolean 落库前序列化为字符串 |
-| 2 | `world_entities.attributes` / `aliases` 是否支持 JSONB | `attributes` 为 JSONB；**无 `aliases` 列** | aliases 暂并入 attributes 或后续加列 |
-| 3 | `world_facts` 是否保留 `value_type` / `unit` / `normalized_value` / `fact_status` | **均无对应列** | 随 `extra` 透传，暂不落库 |
+| 2 | `world_entities.attributes` / `aliases` 是否支持 JSONB | `attributes` 为 JSONB；**无 `aliases` 列** | aliases 暂并入 attributes 或后续加列（未变更） |
+| 3 | `world_facts` 是否保留 `value_type` / `unit` / `normalized_value` / `fact_status` | **阶段二已补列**（`a6e5c92`） | B 的 `extra` 字段现在可直接落库，不再仅透传 |
 | 4 | 事实唯一键与去重策略 | DDL 未声明唯一约束 | 应用层按 `(user_id, source_id, subject_id, predicate, valid_from)` 判重 |
-| 5 | `world_sources` 是否含 `sha256` / `page_count` / `uploaded_at` | **均无列**；现有 `file_name/obs_key/mime_type/file_size` | 去重需应用层计算或后续加列 |
-| 6 | `evidence` 存 `world_facts` JSONB 还是独立证据表 | **暂无证据列/表** | 随 `extra` 透传，暂不落库 |
-| 7 | 实体跨文档合并策略 | DDL 无唯一约束，A 文档约定按 `(user_id, entity_type, name)` 判重 | 待联调确认 |
-| 8 | `source_id` 生成时机 | 阶段二上传服务生成（A） | 抽取前必须已有 `world_sources` 记录 |
+| 5 | `world_sources` 是否含 `sha256` / `page_count` / `uploaded_at` | **阶段二已补列**（`a6e5c92`） | 去重字段已落库 |
+| 6 | `evidence` 存 `world_facts` JSONB 还是独立证据表 | **阶段二已补 `evidence` 列（TEXT 存 JSON）** | 随 `extra` 透传后写列，不再仅透传 |
+| 7 | 实体跨文档合并策略 | DDL 无唯一约束，A 文档约定按 `(user_id, entity_type, name)` 判重 | 待联调确认（未变更） |
+| 8 | `source_id` 生成时机与类型 | A 上传服务生成**雪花数字字符串**（BIGINT，非 UUID）；B 只透传，禁止自造 | 见 4.1 节与 ID 约定；B 的 `source_id` 已由 uuid 改为 snowflake |
 | 9 | predicate 是否落字典表 | DDL 为 VARCHAR，无字典表 | 保持代码枚举（5.2 词表） |
-| 10 | `world_risks` 是否需要引用 `fact_id` 列表 | DDL 无事实关联列 | 风险证据展示需后续扩展 |
-| 11 | `ExtractionRequest` 是否携带 `source_id` | 当前 DTO 无该字段，B 通过 `extra.sourceId` 透传 | Demo 可直接输出 sourceId；Provider 入库需 A 扩展 DTO 或在调用前注入 |
+| 10 | `world_risks` 是否需要引用 `fact_id` 列表 | DDL 无事实关联列 | 风险证据展示需后续扩展（未变更）；`level` 已由 `mid` 统一为 `medium` |
+| 11 | `ExtractionRequest` 是否携带 `source_id` | **阶段二已加 `sourceId` 字段**（`a6e5c92`） | P0-1 关闭；B 从 request 直接取 `sourceId` |
+| 12 | `source_id` 类型三方冲突（PR review 发现） | **拍板：保持 BIGINT**，B 透传 A 上传接口返回的雪花数字字符串，禁止自造 UUID | 已同步 B 的 schema / Demo / 测试；无需映射表 |
 
-> 上述第 2、3、5、6、10、11 项为**契约差异**，当前实现通过 `extra` 透传保证不丢数据，但未落库。建议 A 在阶段二 DDL 中补 `value_type/unit/normalized_value/fact_status/evidence` 列或独立证据表；在双方 PR 确认前，B 不擅自改 `init-postgres.sql` 与 `database-design.md`。
+> 原契约差异第 3、5、6、11 项已由 A 在 `a6e5c92` 关闭；第 8/12 项 `source_id` 类型拍板为 BIGINT 雪花数字字符串。仍未决：第 2、7、10 项（aliases / 实体合并 / 风险事实关联），列为 P1 联调确认项。
 
 ---
 
@@ -656,7 +659,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
   "schema_version": "1.0",
   "extraction_id": "0b6f3c1e-2d4a-4e8b-9c7d-1a2b3c4d5e6f",
   "source": {
-    "source_id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+    "source_id": "1948123456789012345",
     "file_name": "发票_京东_笔记本.pdf",
     "file_type": "pdf",
     "mime_type": "application/pdf",
@@ -675,7 +678,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "aliases": ["Y9000P", "拯救者笔记本"],
       "attributes": { "brand": "联想", "model": "Y9000P 2026" },
       "confidence": 0.96,
-      "source_id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+      "source_id": "1948123456789012345",
       "evidence": { "text_snippet": "商品名称：联想拯救者Y9000P 2026款", "page": 1 }
     }
   ],
@@ -688,10 +691,10 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "value_type": "date",
       "normalized_value": "2026-11-15",
       "confidence": 0.95,
-      "fact_status": "extracted",
+      "fact_status": "confirmed",
       "valid_from": "2026-11-15",
       "valid_until": null,
-      "source_id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+      "source_id": "1948123456789012345",
       "evidence": { "text_snippet": "开票日期：2026-11-15", "page": 1 }
     },
     {
@@ -703,10 +706,10 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "unit": "CNY",
       "normalized_value": "8999.00",
       "confidence": 0.97,
-      "fact_status": "extracted",
+      "fact_status": "confirmed",
       "valid_from": "2026-11-15",
       "valid_until": null,
-      "source_id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+      "source_id": "1948123456789012345",
       "evidence": { "text_snippet": "价税合计：¥8,999.00", "page": 1 }
     },
     {
@@ -716,10 +719,10 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "object_value": "CNY",
       "value_type": "string",
       "confidence": 0.99,
-      "fact_status": "extracted",
+      "fact_status": "confirmed",
       "valid_from": "2026-11-15",
       "valid_until": null,
-      "source_id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+      "source_id": "1948123456789012345",
       "evidence": { "text_snippet": "价税合计：¥8,999.00", "page": 1 }
     },
     {
@@ -729,10 +732,10 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "object_value": "京东商城",
       "value_type": "string",
       "confidence": 0.94,
-      "fact_status": "extracted",
+      "fact_status": "confirmed",
       "valid_from": "2026-11-15",
       "valid_until": null,
-      "source_id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+      "source_id": "1948123456789012345",
       "evidence": { "text_snippet": "销售方：京东商城", "page": 1 }
     },
     {
@@ -747,7 +750,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "fact_status": "inferred",
       "valid_from": "2026-11-15",
       "valid_until": "2028-11-15",
-      "source_id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+      "source_id": "1948123456789012345",
       "evidence": { "text_snippet": "保修政策：整机保修两年", "page": 1 }
     }
   ],
@@ -759,7 +762,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "start_at": "2026-11-15T00:00:00+08:00",
       "related_entity_refs": ["ent_1", "fact_1"],
       "confidence": 0.95,
-      "source_id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+      "source_id": "1948123456789012345",
       "evidence": { "text_snippet": "开票日期：2026-11-15", "page": 1 }
     },
     {
@@ -769,7 +772,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "due_at": "2028-11-15T00:00:00+08:00",
       "related_entity_refs": ["ent_1", "fact_5"],
       "confidence": 0.84,
-      "source_id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+      "source_id": "1948123456789012345",
       "evidence": { "text_snippet": "保修政策：整机保修两年", "page": 1 }
     }
   ],
@@ -817,7 +820,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "object_value": "2026-11-18",
       "value_type": "date",
       "confidence": 0.92,
-      "fact_status": "extracted",
+      "fact_status": "confirmed",
       "valid_from": "2026-11-18",
       "valid_until": "2026-12-18",
       "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
@@ -830,7 +833,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "object_value": "2026-12-18",
       "value_type": "date",
       "confidence": 0.90,
-      "fact_status": "extracted",
+      "fact_status": "confirmed",
       "valid_from": "2026-11-18",
       "valid_until": "2026-12-18",
       "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
@@ -843,7 +846,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "object_value": "monthly",
       "value_type": "string",
       "confidence": 0.93,
-      "fact_status": "extracted",
+      "fact_status": "confirmed",
       "valid_from": "2026-11-18",
       "valid_until": "2026-12-18",
       "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
@@ -856,7 +859,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "object_value": true,
       "value_type": "boolean",
       "confidence": 0.91,
-      "fact_status": "extracted",
+      "fact_status": "confirmed",
       "valid_from": "2026-11-18",
       "valid_until": "2026-12-18",
       "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
@@ -925,7 +928,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "object_value": "2026-12-20",
       "value_type": "date",
       "confidence": 0.86,
-      "fact_status": "extracted",
+      "fact_status": "confirmed",
       "valid_from": "2026-11-16",
       "valid_until": "2026-12-20",
       "source_id": "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",
@@ -938,7 +941,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "object_value": "2026-11-30T23:59:00+08:00",
       "value_type": "datetime",
       "confidence": 0.88,
-      "fact_status": "extracted",
+      "fact_status": "confirmed",
       "valid_from": "2026-11-16",
       "valid_until": "2026-11-30T23:59:00+08:00",
       "source_id": "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",

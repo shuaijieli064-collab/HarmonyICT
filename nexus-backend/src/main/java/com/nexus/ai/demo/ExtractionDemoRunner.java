@@ -50,7 +50,7 @@ public class ExtractionDemoRunner implements ApplicationRunner {
             AiProperties properties,
             @Value("${nexus.ai.demo.input:../nexus-ai/testdata/subscription.txt}") String inputFile,
             @Value("${nexus.ai.demo.output:../nexus-ai/testdata/extraction-result.json}") String outputFile,
-            @Value("${nexus.ai.demo.source-id:00000000-0000-4000-8000-000000000001}") String sourceId) {
+            @Value("${nexus.ai.demo.source-id:1948123456789012345}") String sourceId) {
         this.ocrProvider = ocrProvider;
         this.llmProvider = llmProvider;
         this.outputParser = outputParser;

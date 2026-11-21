@@ -10,7 +10,7 @@
       "textSnippet" : "华为云音乐会员订阅确认 您已开通华为云音乐会员 生效日期：2026-11-18 下次续费日期：2026-12-18 订阅",
       "page" : 1
     },
-    "sourceId" : "00000000-0000-4000-8000-000000000001"
+    "sourceId" : "1948123456789012345"
   } ],
   "facts" : [ {
     "factId" : "fact_1",
@@ -21,14 +21,14 @@
     "unit" : null,
     "normalizedValue" : "2026-12-18",
     "confidence" : 0.92,
-    "factStatus" : "extracted",
+    "factStatus" : "confirmed",
     "validFrom" : null,
     "validUntil" : null,
     "evidence" : {
       "textSnippet" : "下次续费日期：2026-12-18",
       "page" : 1
     },
-    "sourceId" : "00000000-0000-4000-8000-000000000001"
+    "sourceId" : "1948123456789012345"
   }, {
     "factId" : "fact_2",
     "subjectRef" : "ent_1",
@@ -38,14 +38,14 @@
     "unit" : null,
     "normalizedValue" : null,
     "confidence" : 0.9,
-    "factStatus" : "extracted",
+    "factStatus" : "confirmed",
     "validFrom" : null,
     "validUntil" : null,
     "evidence" : {
       "textSnippet" : "订阅周期",
       "page" : 1
     },
-    "sourceId" : "00000000-0000-4000-8000-000000000001"
+    "sourceId" : "1948123456789012345"
   }, {
     "factId" : "fact_3",
     "subjectRef" : "ent_1",
@@ -55,14 +55,14 @@
     "unit" : null,
     "normalizedValue" : null,
     "confidence" : 0.9,
-    "factStatus" : "extracted",
+    "factStatus" : "confirmed",
     "validFrom" : null,
     "validUntil" : null,
     "evidence" : {
       "textSnippet" : "自动续费",
       "page" : 1
     },
-    "sourceId" : "00000000-0000-4000-8000-000000000001"
+    "sourceId" : "1948123456789012345"
   } ],
   "events" : [ {
     "eventId" : "event_1",
@@ -77,7 +77,7 @@
       "textSnippet" : "下次续费日期：2026-12-18",
       "page" : 1
     },
-    "sourceId" : "00000000-0000-4000-8000-000000000001"
+    "sourceId" : "1948123456789012345"
   } ],
   "tasks" : [ ],
   "warnings" : [ ]

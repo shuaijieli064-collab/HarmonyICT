@@ -72,7 +72,7 @@ public class DefaultRiskAnalysisProvider implements RiskAnalysisProvider {
         if ("high".equals(level)) {
             return 3;
         }
-        if ("mid".equals(level)) {
+        if ("medium".equals(level)) {
             return 2;
         }
         return 1;
