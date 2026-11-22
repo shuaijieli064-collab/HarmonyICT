@@ -35,7 +35,7 @@ class ExtractionOutputParserTest {
                       "objectValue": "2026-11-15",
                       "valueType": "date",
                       "confidence": 0.95,
-                      "factStatus": "extracted",
+                      "factStatus": "confirmed",
                       "validFrom": "2026-11-15",
                       "validUntil": null,
                       "evidence": { "textSnippet": "开票日期：2026-11-15", "page": 1 }
@@ -70,7 +70,7 @@ class ExtractionOutputParserTest {
                       "objectValue": 1000,
                       "valueType": "number",
                       "confidence": 0.90,
-                      "factStatus": "extracted",
+                      "factStatus": "confirmed",
                       "evidence": { "textSnippet": "" }
                     }
                   ]
@@ -96,7 +96,7 @@ class ExtractionOutputParserTest {
                       "objectValue": "x",
                       "valueType": "string",
                       "confidence": 0.90,
-                      "factStatus": "extracted",
+                      "factStatus": "confirmed",
                       "evidence": { "textSnippet": "原文" }
                     }
                   ]
@@ -146,12 +146,12 @@ class ExtractionOutputParserTest {
                     {
                       "factId": "fact_1", "subjectRef": "ent_1", "predicate": "name",
                       "objectValue": "沪深300ETF", "valueType": "string", "confidence": 0.90,
-                      "factStatus": "extracted", "evidence": { "textSnippet": "沪深300ETF" }
+                      "factStatus": "confirmed", "evidence": { "textSnippet": "沪深300ETF" }
                     },
                     {
                       "factId": "fact_2", "subjectRef": "ent_1", "predicate": "name",
                       "objectValue": "中证500ETF", "valueType": "string", "confidence": 0.90,
-                      "factStatus": "extracted", "evidence": { "textSnippet": "中证500ETF" }
+                      "factStatus": "confirmed", "evidence": { "textSnippet": "中证500ETF" }
                     }
                   ]
                 }
@@ -175,7 +175,7 @@ class ExtractionOutputParserTest {
                     {
                       "factId": "fact_1", "subjectRef": "ent_1", "predicate": "goal_target",
                       "objectValue": "通过初赛", "valueType": "string", "confidence": 0.90,
-                      "factStatus": "extracted", "evidence": { "textSnippet": "目标：通过初赛" }
+                      "factStatus": "confirmed", "evidence": { "textSnippet": "目标：通过初赛" }
                     }
                   ]
                 }
