@@ -5,7 +5,7 @@
  */
 
 import { request } from "@/lib/http";
-import { UPLOAD_MAX_SIZE, UPLOAD_MAX_SIZE_MB } from "@/lib/constants";
+import { UPLOAD_ACCEPT, UPLOAD_MAX_SIZE, UPLOAD_MAX_SIZE_MB } from "@/lib/constants";
 import type { Fact } from "@/types";
 
 export type UploadPhase = "uploading" | "extracting";
@@ -27,8 +27,15 @@ export interface UploadResponse {
   status: "pending";
 }
 
-/** 客户端预校验（契约 4.1：单文件 ≤ 20MB，pdf/docx/xlsx/txt/md/png/jpg） */
+/** 客户端预校验（契约 4.1：单文件 ≤ 20MB，pdf/docx/xlsx/txt/md/png/jpg）：
+ * 扩展名白名单先行拦截，避免不合规文件上传完才被后端 30102 拒绝。
+ */
 export function validateUploadFile(file: File): string | null {
+  const lowerName = file.name.toLowerCase();
+  const allowedExtensions = UPLOAD_ACCEPT.split(",");
+  if (!allowedExtensions.some((ext) => lowerName.endsWith(ext))) {
+    return `不支持的文件类型「${file.name}」，仅限 pdf / docx / xlsx / txt / md / png / jpg`;
+  }
   if (file.size > UPLOAD_MAX_SIZE) {
     return `文件「${file.name}」超过大小上限 ${UPLOAD_MAX_SIZE_MB}MB`;
   }

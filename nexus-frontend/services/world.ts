@@ -30,7 +30,9 @@ export function listEvents(
   return request<PageResult<EventItem>>("/api/v1/events", { query: options });
 }
 
-/** 创建实体（契约 5.1） */
+/** 创建实体（契约 5.1）：实体重名返回 code=20104，UI 层用
+ * `err instanceof ApiError && err.code === 20104` 区分提示「已存在同名实体」。
+ */
 export function createEntity(input: { entityType: string; name: string; attributes?: Record<string, unknown> }) {
   return request<Entity>("/api/v1/entities", { method: "POST", body: input });
 }
