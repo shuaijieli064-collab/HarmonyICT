@@ -7,7 +7,7 @@ import { pollExtraction, uploadFile } from "@/services/upload";
 import type { Fact, UploadFileItem } from "@/types";
 
 /** 文件上传交互组件：拖拽 + 点击选择 + 两段进度 + 事实结果展示
- * 契约 4.2 异步两步：上传拿 sourceId → 轮询事实（2s 间隔），当前走 services/upload.ts 的 Mock 实现，联调时无缝切换。
+ * 契约 4.2 异步两步：上传拿 sourceId → 轮询事实（2s 间隔 / 60s 超时），已走 services/upload.ts 真实接口（需先登录）。
  */
 export default function UploadPanel() {
   const dropZoneId = useId();

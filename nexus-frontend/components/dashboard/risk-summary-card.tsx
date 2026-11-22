@@ -15,7 +15,9 @@ export default function RiskSummaryCard({ risk }: { risk: RiskItem }) {
         </span>
       </div>
       <p className="mt-2 text-xs leading-relaxed text-secondary">{risk.reason}</p>
-      <p className="mt-2 text-xs text-muted">关联事实 {risk.relatedFactCount} 条</p>
+      {risk.relatedFactCount !== null && (
+        <p className="mt-2 text-xs text-muted">关联事实 {risk.relatedFactCount} 条</p>
+      )}
     </div>
   );
 }

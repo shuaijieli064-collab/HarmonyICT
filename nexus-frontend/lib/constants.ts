@@ -37,12 +37,13 @@ export const RISK_LEVEL_MAP = {
   low: { label: "正常", text: "text-success", bg: "bg-success/15" },
 } as const;
 
-/** Agent 任务状态 → 展示文案与配色 */
+/** Agent 任务状态 → 展示文案与配色（run 枚举 running/succeeded/failed/cancelled 映射见 dashboard-data.tsx） */
 export const AGENT_TASK_STATUS_MAP = {
   running: { label: "执行中", text: "text-primary", bg: "bg-primary/15" },
   waiting_auth: { label: "待授权", text: "text-warning", bg: "bg-warning/15" },
   done: { label: "已完成", text: "text-success", bg: "bg-success/15" },
   failed: { label: "失败", text: "text-danger", bg: "bg-danger/15" },
+  cancelled: { label: "已取消", text: "text-muted", bg: "bg-secondary/15" },
 } as const;
 
 /** 事实可信状态 → 展示文案与配色（factStatus 暂定值，以 B 主笔的 extraction-schema.md 为准） */
