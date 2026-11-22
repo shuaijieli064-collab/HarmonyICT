@@ -1,0 +1,116 @@
+# nexus-ai（成员 B）
+
+AI 与智能引擎交付目录：测试资料集、抽取结果样例、联调说明。
+后端实现位于 `nexus-backend/src/main/java/com/nexus/ai/`（B 独占包）。
+
+## 目录
+
+| 路径 | 说明 |
+| --- | --- |
+| `testdata/invoice.pdf` | 发票样例（PDF，真实验收用 OCR/PDF 转图链路） |
+| `testdata/subscription.txt` | 订阅确认样例（TXT，可直接抽取） |
+| `testdata/study-plan.png` | 学习计划样例（图片，真实验收用 OCR） |
+| `testdata/generate_invoice_pdf.py` | 发票 PDF 生成脚本（Python 标准库） |
+| `testdata/GenerateStudyPlan.java` | 学习计划图片生成脚本（JDK 单文件运行） |
+| `testdata/extraction-result.json` | Demo 运行产物（不入库，可删除） |
+
+## 运行抽取 Demo
+
+工作目录：`nexus-backend`。
+
+### 本地链路验证（无云凭证）
+
+```
+mvn.cmd spring-boot:run -Dspring-boot.run.arguments="--nexus.ai.mode=mock --nexus.ai.demo.enabled=true --nexus.ai.demo.input=../nexus-ai/testdata/subscription.txt"
+```
+
+mock 模式用确定性正则抽取，仅验证「原文 → Schema JSON → DTO」链路，**不能作为华为云能力证明**。
+mock OCR 只解码纯文本 base64，不识别图片内容。
+
+### 真实华为云调用
+
+先设置环境变量（凭据只走环境变量，禁止写入仓库）：
+
+```
+set NEXUS_AI_MODE=real
+set NEXUS_AI_MAAS_BASE_URL=https://maas-api.<region>.myhuaweicloud.com
+set NEXUS_AI_MAAS_API_KEY=<MaaS API Key>
+set NEXUS_AI_MAAS_MODEL=<模型名>
+set NEXUS_AI_OCR_IAM_ENDPOINT=https://iam.<region>.myhuaweicloud.com
+set NEXUS_AI_OCR_ENDPOINT=https://ocr.<region>.myhuaweicloud.com
+set NEXUS_AI_OCR_USERNAME=<IAM 用户名>
+set NEXUS_AI_OCR_PASSWORD=<IAM 密码>
+set NEXUS_AI_OCR_DOMAIN_NAME=<账号名>
+set NEXUS_AI_OCR_PROJECT_ID=<项目 ID>
+```
+
+然后运行：
+
+```
+mvn.cmd spring-boot:run -Dspring-boot.run.arguments="--nexus.ai.demo.enabled=true --nexus.ai.demo.input=../nexus-ai/testdata/subscription.txt"
+```
+
+图片样例把 input 换成 `../nexus-ai/testdata/study-plan.png`；PDF 需先转图片（阶段二随 OBS 接入补齐）。
+
+## 配置项（nexus.ai.*）
+
+| 配置 | 环境变量 | 说明 |
+| --- | --- | --- |
+| `nexus.ai.mode` | `NEXUS_AI_MODE` | `real`（默认）/ `mock` |
+| `nexus.ai.maas.base-url` | `NEXUS_AI_MAAS_BASE_URL` | 只填域名，代码追加 `/v1/chat/completions` |
+| `nexus.ai.maas.api-key` | `NEXUS_AI_MAAS_API_KEY` | MaaS API Key |
+| `nexus.ai.maas.model` | `NEXUS_AI_MAAS_MODEL` | 模型名 |
+| `nexus.ai.maas.temperature` | `NEXUS_AI_MAAS_TEMPERATURE` | 默认 0.1 |
+| `nexus.ai.ocr.*` | `NEXUS_AI_OCR_*` | IAM 用户名/密码/账号名/项目 ID |
+| `nexus.ai.demo.source-id` | `NEXUS_AI_DEMO_SOURCE_ID` | Demo 输出事实的 `source_id`（默认演示 UUID，真实联调由 A 传入） |
+
+### 真实调用验收脚本（P0，需华为云凭据）
+
+```
+cp real-call.env.template real-call.env   # 填入真实凭据（real-call.env 已被 .gitignore 忽略）
+bash verify-real-call.sh                   # 依次验收 MaaS 文本抽取 + OCR 图片识别
+```
+
+脚本会校验 6 项必填凭据，缺一即退出，不会用空凭据空跑；输出文件仍为 `testdata/extraction-result.json`。
+阶段一 OCR 仅支持图片（`study-plan.png`），`invoice.pdf` 需阶段二 OBS 接入 PDF 转图后验证。
+凭据只走本地 `real-call.env` 或系统环境变量，**禁止写入仓库**。
+
+## 风险规则引擎（阶段三）
+
+实现：`com.nexus.ai.risk.DefaultRiskAnalysisProvider` + `risk/rules/` 下 4 条规则。纯计算，不访问数据库，入库由 A 的服务负责。
+
+| 规则 | 输入事实 / 事件 | 阈值 | level | ruleCode | riskType |
+| --- | --- | --- | --- | --- | --- |
+| 期限监控 | `task_due_at` / `goal_deadline` / `project_deadline` | ≤30 / ≤7 / ≤1 天 | low / medium / high | `DEADLINE_30D/7D/1D` | `contract_deadline` |
+| 保修/订阅到期 | `warranty_until` / `subscription_renewal_at` / `subscription_end_at` | 同上 | 同上 | `WARRANTY_EXPIRY_*` / `SUBSCRIPTION_EXPIRY_*` | `cert_expiry` / `contract_deadline` |
+| 日程冲突 | `events.occurredAt` | 同日 ≥2 项；同小时 → medium | low / medium | `SCHEDULE_CONFLICT_DAY/HOUR` | `other` |
+| 预算约束 | `budget_limit` + `subscription_price`（按 `subscription_cycle` 折算月度） | ≥80% medium，≥100% high | medium / high | `BUDGET_WARNING/OVERSPENT` | `other` |
+
+每条风险输出 `ruleCode`、等级、触发说明和证据事实 ID，模型不参与结论。
+
+> `riskType` 受 A 的 DDL 枚举限制（`cert_expiry/contract_deadline/asset_concentration/data_staleness/other`）。日程冲突与预算约束暂无专属枚举，暂用 `other`；建议 A 在阶段二扩展枚举。
+
+## Agent 工具编排（阶段四）
+
+实现：`com.nexus.ai.agent.DefaultAgentOrchestratorProvider` + `AgentToolRegistry` + `AgentIntentParser`。
+只产出候选计划，不落库、不执行；`agent_action_logs` 持久化与 L2 授权由 A 的编排服务负责。
+
+工具白名单（未注册的 `actionType` 不会出现在计划中）：
+
+| actionType | level | targetType | 说明 |
+| --- | --- | --- | --- |
+| `read_fact` | L0 | fact | 只读当前有效事实 |
+| `read_event` | L0 | event | 只读事件时间线 |
+| `create_task` | L1 | task | 创建待办，执行前需向用户展示 |
+| `update_fact` | L2 | fact | 更新世界模型事实，须用户授权后执行 |
+
+意图规则（规则驱动，可复现）：
+
+- 「查看 / 汇总 / 整理 / 有哪些」→ 只读计划（L0）
+- 「待办 / 任务 / 提醒 / 安排」→ `create_task`（L1），自动关联最近到期的保修/订阅/任务事实
+- 「更新 / 修改 / 改到」→ `update_fact`（L2），需同时定位到唯一事实与新值；否则降级为只读计划并提示补充信息
+- 单次计划最多 10 个操作；空意图不生成操作
+
+## 契约
+
+抽取输出以 `docs/extraction-schema.md` 为准；与 A 的 DTO 映射说明见该文档第 10、12 节。
