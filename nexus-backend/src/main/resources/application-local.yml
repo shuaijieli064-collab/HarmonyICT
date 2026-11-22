@@ -1,0 +1,23 @@
+# 本地开发：H2 内存库（PostgreSQL 兼容模式）+ 关闭 Redis 强依赖
+# 为什么用 H2：本地无 RDS 实例时也要能启动验证；表结构 SQL 与 PostgreSQL 兼容，生产切 RDS 无需改代码
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:nexus;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: embedded
+      # 初始化脚本与 database-design.md 的 PostgreSQL DDL 兼容
+      schema-locations: classpath:db/schema.sql
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      # Redis 连接超时调短，未启动 Redis 时退出黑名单快速降级（不阻塞登录流程）
+      timeout: 500ms
+
+logging:
+  level:
+    com.nexus: debug

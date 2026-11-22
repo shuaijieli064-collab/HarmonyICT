@@ -1,0 +1,31 @@
+# 真实基础设施 profile：连接 docker 本地容器或华为云 RDS/Redis
+# 启动示例：NEXUS_PROFILE=postgres 或 java -jar ... --spring.profiles.active=postgres
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    # docker 本地容器默认值；指向华为云 RDS 时用环境变量覆盖
+    url: jdbc:postgresql://${NEXUS_RDS_HOST:localhost}:${NEXUS_RDS_PORT:5432}/${NEXUS_RDS_DB:nexus}
+    username: ${NEXUS_RDS_USER:nexus}
+    password: ${NEXUS_RDS_PASSWORD:nexus_local_dev}
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/init-postgres.sql
+  data:
+    redis:
+      host: ${NEXUS_REDIS_HOST:localhost}
+      port: ${NEXUS_REDIS_PORT:6379}
+      password: ${NEXUS_REDIS_PASSWORD:nexus_local_dev}
+      timeout: 2s
+
+nexus:
+  obs:
+    endpoint: ${NEXUS_OBS_ENDPOINT:https://obs.cn-north-4.myhuaweicloud.com}
+    bucket: ${NEXUS_OBS_BUCKET:nexus-demo}
+    access-key: ${NEXUS_OBS_AK:}
+    secret-key: ${NEXUS_OBS_SK:}
+
+management:
+  health:
+    redis:
+      enabled: true

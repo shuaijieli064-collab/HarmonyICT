@@ -7,21 +7,12 @@
 
 ## 0. 一次性准备
 
-### 0.1 由一人先建立远程仓库（只需做一次）
+### 0.1 远程仓库（已初始化完成，成员跳过此步）
 
-当前所有文档还在本地工作区，必须先推上 GitHub，其他人才有东西可拉取：
+仓库地址：`git@github.com:shuaijieli064-collab/HarmonyICT.git`
+已包含 `main` 和 `develop` 两个分支，全部文档已推送。三人**只需从 0.2 开始执行**，不要再 `git init`。
 
-```
-# 在有文档的本地目录执行
-git init
-git add docs/
-git commit -m "[chore] 初始化项目文档"
-git branch -M main
-git remote add origin <你的GitHub仓库地址>
-git push -u origin main
-```
-
-推送后，把仓库地址发给三位成员。
+> 记录：初始提交 `c883022`，分支 `main`（稳定版）与 `develop`（PR 目标分支）。
 
 ### 0.2 每人各做一次：配置 Git 身份与认证
 
@@ -40,18 +31,28 @@ ssh -T git@github.com                          # 出现 Hi <用户名>! 即成�
 
 > 若坚持用 HTTPS + 个人访问令牌（PAT），须先在本地配置凭证存储（`git config --global credential.helper store` 并首次手动登录一次），否则智能体每次 push 都会卡住。**比赛场景推荐直接用 SSH。**
 
-### 0.3 每人各做一次：克隆仓库并建自己的分支
+### 0.3 进入工作区并建自己的分支
+
+**A（项目文件夹已在本机）**：本地仓库已存在，无需 clone。直接进入该文件夹，从 develop 建分支：
 
 ```
-git clone <你的GitHub仓库地址>
-cd NEXUS
-git checkout -b feature/backend-a    # A 用这个
-# git checkout -b feature/ai-b        # B 用这个
+cd <本机项目文件夹>
+git checkout develop
+git checkout -b feature/backend-a
+git push -u origin feature/backend-a
+```
+
+**B / C（本机没有文件夹）**：先克隆，再建各自分支：
+
+```
+git clone git@github.com:shuaijieli064-collab/HarmonyICT.git
+cd HarmonyICT
+git checkout -b feature/ai-b         # B 用这个
 # git checkout -b feature/frontend-c  # C 用这个
-git push -u origin feature/backend-a  # 换成自己分支
+git push -u origin feature/ai-b       # 换成自己分支
 ```
 
-**之后用 CodeArts 打开这个 NEXUS 文件夹作为工作区，再下发下面的 Prompt。**
+**之后用 CodeArts 打开这个文件夹（含 `.git` 的层级）作为工作区，再下发下面的 Prompt。**
 
 ---
 
@@ -121,7 +122,7 @@ git push -u origin feature/backend-a  # 换成自己分支
 | 智能体执行 push 卡住不动 | HTTPS 认证需要交互输入凭证 | 改用 SSH（见 0.2），或先本地手动登录一次缓存凭证 |
 | `rejected` 推送被拒 | 远端分支有他人新提交 | 先执行场景一（fetch + rebase），再 push |
 | rebase 冲突 | 两人改了同一文件同一处 | 停止，人工确认保留哪一方，勿让智能体自动合并 |
-| `fatal: not a git repository` | 工作区不是仓库根 | 用 CodeArts 打开 NEXUS 文件夹（含 `.git` 的层级）作为工作区 |
+| `fatal: not a git repository` | 工作区不是仓库根 | 用 CodeArts 打开 HarmonyICT 文件夹（含 `.git` 的层级）作为工作区 |
 | 智能体无终端权限 | IDE 未授权命令执行 | 在 CodeArts 设置里开启终端/命令执行权限，或手动执行后让智能体继续 |
 
 ---
