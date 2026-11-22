@@ -177,7 +177,7 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 
 | 接口 | 说明 |
 | --- | --- |
-| `POST /api/v1/tasks` | `{ "title", "description"(可选), "priority": 0, "dueDate"(可选), "sourceType"(默认 manual), "riskId"(可选) }` |
+| `POST /api/v1/tasks` | `{ "title", "description"(可选), "priority": 0, "dueDate"(可选), "sourceType"(默认 manual), "riskId"(可选), "relatedFactId"(可选) }`；`relatedFactId` 为来源事实溯源（Agent 基于事实派生任务场景，须存在且属于当前用户，否则 `20102`） |
 | `GET /api/v1/tasks` | 分页：`page/pageSize/status(可选)/sourceType(可选)`，优先按 dueDate 升序 |
 | `GET /api/v1/tasks/{id}` | 详情 |
 | `PUT /api/v1/tasks/{id}` | 更新 title/description/priority/dueDate |
@@ -186,6 +186,7 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 
 `status` 合法流转：`todo → in_progress → done`；`todo/in_progress → cancelled`；非法流转返回 `50102`。
 `priority`：0 普通 / 1 重要 / 2 紧急；`sourceType`：`manual / risk / agent`。
+任务响应含 `riskId` / `relatedFactId`（溯源字段，可能为 null）。
 
 ## 8. Agent 执行记录（阶段三实现）
 

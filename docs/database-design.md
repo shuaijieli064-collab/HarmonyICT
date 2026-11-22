@@ -15,6 +15,7 @@
 5. DDL 变更写入迁移文件纳入版本管理（阶段二起引入 Flyway），禁止在云数据库手工改表不落文档。
 6. **JSONB→TEXT 变更（2026-11-22，阶段二）**：`world_entities.attributes` 与 `agent_action_logs.payload` 由 JSONB 改为 TEXT 存 JSON 字符串。原因：H2 本地库不支持 JSONB，统一 TEXT 后 H2/PG 双端 DDL 完全一致、应用层用 String 承载；Demo 场景无 JSONB 索引查询需求，代价可接受。B 写事实时不受影响（facts 表无 JSON 字段）。
 7. **PR #1 review 对齐变更（2026-11-22，阶段二）**：① `world_facts` 补 `value_type` / `unit` / `normalized_value` / `fact_status` / `evidence` 五列，`world_sources` 补 `sha256` / `page_count` / `uploaded_at` 三列（对齐 B 侧 `extraction-schema.md` 输出，移交清单 P0-2/P0-3）；② `world_risks.level` 枚举 `mid` 改 `medium`（C 端前端已按 medium 实现）；③ `source_id` 类型拍板：保持 BIGINT，B 侧抽取时透传 A 上传接口返回的 `sourceId`，禁止自造 UUID。详见 PR #1 review 意见与 `ResultCode.java` 新增的 90011-90013 抽取校验错误码。
+8. **PR #2 review 拍板变更（2026-11-22，阶段二）**：`tasks` 补 `related_fact_id BIGINT REFERENCES world_facts(id)`——B 编排器 create_task payload 携带的 `relatedFactId` 由 A 侧执行器透传落库（原执行器不消费会丢失任务与来源事实的关联），与 `risk_id` 风险溯源设计对称。创建任务时校验该事实存在且属于当前用户，不存在返回 `20102`。
 
 ## 2. ER 关系
 
@@ -82,6 +83,7 @@ erDiagram
         varchar title
         varchar status
         bigint risk_id FK
+        bigint related_fact_id FK
     }
     agent_runs {
         bigint id PK
@@ -247,6 +249,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     due_date    DATE,
     source_type VARCHAR(16)   NOT NULL DEFAULT 'manual',
     risk_id     BIGINT        REFERENCES world_risks(id),
+    related_fact_id BIGINT    REFERENCES world_facts(id),      -- 来源事实溯源（Agent 基于事实派生任务，PR #2 review 拍板新增）
     created_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_task_status CHECK (status IN ('todo','in_progress','done','cancelled')),

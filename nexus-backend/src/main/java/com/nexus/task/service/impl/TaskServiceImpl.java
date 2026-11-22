@@ -13,6 +13,8 @@ import com.nexus.task.dto.TaskUpdateRequest;
 import com.nexus.task.entity.Task;
 import com.nexus.task.mapper.TaskMapper;
 import com.nexus.task.service.TaskService;
+import com.nexus.world.entity.WorldFact;
+import com.nexus.world.mapper.WorldFactMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -36,10 +38,12 @@ public class TaskServiceImpl implements TaskService {
 
     private final TaskMapper taskMapper;
     private final WorldRiskMapper riskMapper;
+    private final WorldFactMapper factMapper;
 
-    public TaskServiceImpl(TaskMapper taskMapper, WorldRiskMapper riskMapper) {
+    public TaskServiceImpl(TaskMapper taskMapper, WorldRiskMapper riskMapper, WorldFactMapper factMapper) {
         this.taskMapper = taskMapper;
         this.riskMapper = riskMapper;
+        this.factMapper = factMapper;
     }
 
     @Override
@@ -52,6 +56,14 @@ public class TaskServiceImpl implements TaskService {
                 throw new BizException(ResultCode.RISK_NOT_FOUND);
             }
         }
+        if (request.relatedFactId() != null) {
+            Long count = factMapper.selectCount(new LambdaQueryWrapper<WorldFact>()
+                    .eq(WorldFact::getId, request.relatedFactId())
+                    .eq(WorldFact::getUserId, userId));
+            if (count == null || count == 0) {
+                throw new BizException(ResultCode.WORLD_FACT_NOT_FOUND);
+            }
+        }
         Instant now = Instant.now();
         Task task = new Task();
         task.setUserId(userId);
@@ -62,6 +74,7 @@ public class TaskServiceImpl implements TaskService {
         task.setDueDate(request.dueDate());
         task.setSourceType(request.sourceType() == null ? "manual" : request.sourceType());
         task.setRiskId(request.riskId());
+        task.setRelatedFactId(request.relatedFactId());
         task.setCreatedAt(now);
         task.setUpdatedAt(now);
         taskMapper.insert(task);
