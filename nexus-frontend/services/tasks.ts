@@ -17,7 +17,7 @@ export function listTasks(options: ListTasksOptions = {}) {
   return request<PageResult<Task>>("/api/v1/tasks", { query: options });
 }
 
-/** 创建任务（契约 7：priority 0 普通/1 重要/2 紧急） */
+/** 创建任务（契约 7：priority 0 普通/1 重要/2 紧急；relatedFactId 须存在且属于当前用户，否则 20102） */
 export function createTask(input: {
   title: string;
   description?: string;
@@ -25,6 +25,7 @@ export function createTask(input: {
   dueDate?: string;
   sourceType?: string;
   riskId?: string;
+  relatedFactId?: string;
 }) {
   return request<Task>("/api/v1/tasks", { method: "POST", body: input });
 }

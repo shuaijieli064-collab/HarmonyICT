@@ -179,7 +179,7 @@ export interface RiskDetail {
 /** 任务状态（契约 7：合法流转 todo→in_progress→done；todo/in_progress→cancelled） */
 export type TaskStatus = "todo" | "in_progress" | "done" | "cancelled";
 
-/** 任务条目（契约 7） */
+/** 任务条目（契约 7；riskId/relatedFactId 为溯源字段，可能为 null） */
 export interface Task {
   id: string;
   title: string;
@@ -189,6 +189,8 @@ export interface Task {
   dueDate: string | null;
   sourceType: "manual" | "risk" | "agent";
   riskId: string | null;
+  /** 来源事实溯源：Agent 基于事实派生任务时由后端回填（新建类动作 targetId 同语义） */
+  relatedFactId: string | null;
   createdAt: string;
   updatedAt: string;
 }
