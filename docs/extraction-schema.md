@@ -328,6 +328,7 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
 | `W-UNSUPPORTED-FILE` | 告警 | 文件类型不在 PDF / 图片 / TXT | 不抽取，返回空结果 |
 | `W-INCOMPLETE-SUBSCRIPTION` | 告警 | 订阅缺少续费日与到期日 | 入库，风险引擎跳过该条 |
 | `W-NO-ENTITY` | 告警 | 事实的 `subject_ref` 无法解析到实体 | 该事实不入库 |
+| `W-INVALID-FACT-STATUS` | 告警 | `fact_status` 不在 `confirmed/inferred/unverified` 三态内 | 降级为 `unverified` 后入库，避免 DB CHECK 违规 |
 
 重试策略：`E-SCHEMA` 允许带错误信息重试 1 次；`E-PREDICATE` 不重试，直接拒绝，避免模型「凑词」。
 

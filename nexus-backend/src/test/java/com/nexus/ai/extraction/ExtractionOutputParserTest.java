@@ -186,4 +186,68 @@ class ExtractionOutputParserTest {
 
         assertEquals(1, parsed.facts().size());
     }
+
+    @Test
+    void downgradesIllegalFactStatusToUnverifiedWithWarning() {
+        String json = """
+                {
+                  "entities": [ { "entityId": "ent_1", "entityType": "asset", "name": "基金" } ],
+                  "facts": [
+                    {
+                      "factId": "fact_1", "subjectRef": "ent_1", "predicate": "price",
+                      "objectValue": "1000", "valueType": "number", "confidence": 0.90,
+                      "factStatus": "verified", "evidence": { "textSnippet": "价格1000元" }
+                    }
+                  ]
+                }
+                """;
+
+        ExtractionOutputParser.ParsedExtraction parsed = parser.parse(json, 0.50);
+
+        assertEquals(1, parsed.facts().size());
+        assertEquals("unverified", parsed.facts().get(0).extra().get("factStatus"));
+        assertTrue(parsed.warnings().stream().anyMatch(w -> w.startsWith("W-INVALID-FACT-STATUS")));
+    }
+
+    @Test
+    void downgradesLegacyExtractedStatusToUnverified() {
+        String json = """
+                {
+                  "entities": [ { "entityId": "ent_1", "entityType": "asset", "name": "基金" } ],
+                  "facts": [
+                    {
+                      "factId": "fact_1", "subjectRef": "ent_1", "predicate": "name",
+                      "objectValue": "沪深300ETF", "valueType": "string", "confidence": 0.90,
+                      "factStatus": "extracted", "evidence": { "textSnippet": "沪深300ETF" }
+                    }
+                  ]
+                }
+                """;
+
+        ExtractionOutputParser.ParsedExtraction parsed = parser.parse(json, 0.50);
+
+        assertEquals("unverified", parsed.facts().get(0).extra().get("factStatus"));
+        assertTrue(parsed.warnings().stream().anyMatch(w -> w.startsWith("W-INVALID-FACT-STATUS")));
+    }
+
+    @Test
+    void normalizesFactStatusCaseToLowerCase() {
+        String json = """
+                {
+                  "entities": [ { "entityId": "ent_1", "entityType": "asset", "name": "基金" } ],
+                  "facts": [
+                    {
+                      "factId": "fact_1", "subjectRef": "ent_1", "predicate": "name",
+                      "objectValue": "沪深300ETF", "valueType": "string", "confidence": 0.90,
+                      "factStatus": "CONFIRMED", "evidence": { "textSnippet": "沪深300ETF" }
+                    }
+                  ]
+                }
+                """;
+
+        ExtractionOutputParser.ParsedExtraction parsed = parser.parse(json, 0.50);
+
+        assertEquals("confirmed", parsed.facts().get(0).extra().get("factStatus"));
+        assertTrue(parsed.warnings().stream().noneMatch(w -> w.startsWith("W-INVALID-FACT-STATUS")));
+    }
 }

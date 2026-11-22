@@ -25,13 +25,13 @@ fi
 
 # 载入 env 文件（如存在）：忽略注释与空行，仅解析 KEY=VALUE
 if [[ -f "$ENV_FILE" ]]; then
-  echo "[1/4] 载入凭据文件: $ENV_FILE"
+  echo "[1/5] 载入凭据文件: $ENV_FILE"
   set -a
   # shellcheck disable=SC1090
   source "$ENV_FILE"
   set +a
 else
-  echo "[1/4] 未找到 $ENV_FILE，改用已导出的系统环境变量"
+  echo "[1/5] 未找到 $ENV_FILE，改用已导出的系统环境变量"
 fi
 
 # 必填项校验
@@ -56,7 +56,7 @@ if (( ${#MISSING[@]} > 0 )); then
   echo "请复制 real-call.env.template 为 real-call.env 并填入真实值。" >&2
   exit 1
 fi
-echo "[2/4] 凭据校验通过（值不回显）"
+echo "[2/5] 凭据校验通过（值不回显）"
 
 run_demo() {
   local label="$1" input="$2"
@@ -68,12 +68,16 @@ run_demo() {
   echo "$out" | grep "抽取 Demo 完成" || { echo "$out" | tail -20; echo "[错误] $label 未输出完成日志" >&2; return 1; }
 }
 
-echo "[3/4] 验收① MaaS 文本抽取（subscription.txt）"
+echo "[3/5] 验收① MaaS 文本抽取（subscription.txt）"
 run_demo "MaaS 文本抽取" "../nexus-ai/testdata/subscription.txt"
 
-echo "[4/4] 验收② OCR 图片识别 + MaaS 抽取（study-plan.png）"
+echo "[4/5] 验收② OCR 图片识别 + MaaS 抽取（study-plan.png）"
 run_demo "OCR 图片识别" "../nexus-ai/testdata/study-plan.png"
+
+echo "[5/5] 验收③ PDF 逐页转图 + OCR + 抽取（invoice.pdf）"
+echo "  前置：pom.xml 需已加入 org.apache.pdfbox:pdfbox 依赖，否则会提示缺依赖"
+run_demo "PDF 转图识别" "../nexus-ai/testdata/invoice.pdf"
 
 echo "==== 验收完成，核对输出 ===="
 echo "输出文件: $SCRIPT_DIR/testdata/extraction-result.json"
-echo "检查项: provider=huawei-llm/huawei-ocr; entity/fact/event 均带 sourceId; 置信度与证据片段合理"
+echo "检查项: provider=huawei-llm/huawei-ocr; entity/fact/event 均带 sourceId; 置信度与证据片段合理; PDF 页块页码正确"

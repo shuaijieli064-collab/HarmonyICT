@@ -13,6 +13,8 @@ AI 与智能引擎交付目录：测试资料集、抽取结果样例、联调�
 | `testdata/generate_invoice_pdf.py` | 发票 PDF 生成脚本（Python 标准库） |
 | `testdata/GenerateStudyPlan.java` | 学习计划图片生成脚本（JDK 单文件运行） |
 | `testdata/extraction-result.json` | Demo 运行产物（不入库，可删除） |
+| `P1-JOINT-DECISION.md` | P1 四项联调拍板数据（含 confidence/factStatus 落库 P0） |
+| `ORCHESTRATION-CONTRACT.md` | 抽取入库编排契约（OCR→抽取→落库链路 + PDF 转图说明） |
 
 ## 运行抽取 Demo
 
@@ -50,7 +52,7 @@ set NEXUS_AI_OCR_PROJECT_ID=<项目 ID>
 mvn.cmd spring-boot:run -Dspring-boot.run.arguments="--nexus.ai.demo.enabled=true --nexus.ai.demo.input=../nexus-ai/testdata/subscription.txt"
 ```
 
-图片样例把 input 换成 `../nexus-ai/testdata/study-plan.png`；PDF 需先转图片（阶段二随 OBS 接入补齐）。
+图片样例把 input 换成 `../nexus-ai/testdata/study-plan.png`；PDF 样例把 input 换成 `../nexus-ai/testdata/invoice.pdf`（需 pom 已引入 PDFBox，见"PDF 转图"说明）。
 
 ## 配置项（nexus.ai.*）
 
@@ -68,12 +70,28 @@ mvn.cmd spring-boot:run -Dspring-boot.run.arguments="--nexus.ai.demo.enabled=tru
 
 ```
 cp real-call.env.template real-call.env   # 填入真实凭据（real-call.env 已被 .gitignore 忽略）
-bash verify-real-call.sh                   # 依次验收 MaaS 文本抽取 + OCR 图片识别
+bash verify-real-call.sh                   # 依次验收 MaaS 文本抽取 + OCR 图片 + PDF 转图识别
 ```
 
 脚本会校验 6 项必填凭据，缺一即退出，不会用空凭据空跑；输出文件仍为 `testdata/extraction-result.json`。
-阶段一 OCR 仅支持图片（`study-plan.png`），`invoice.pdf` 需阶段二 OBS 接入 PDF 转图后验证。
+OCR 支持图片（`study-plan.png`）与 PDF（`invoice.pdf`，逐页转图后识别，需 pom 引入 PDFBox）。
 凭据只走本地 `real-call.env` 或系统环境变量，**禁止写入仓库**。
+
+### PDF 转图（阶段二遗留，已补齐）
+
+`com.nexus.ai.ocr.PdfPageRenderer` 通过反射调用 Apache PDFBox 逐页渲染 PDF（200 DPI → PNG），
+`HuaweiOcrProvider` 遇到 `mimeType=pdf` 时逐页识别并保留真实页码。
+
+- **需 A 在 `nexus-backend/pom.xml` 添加依赖**（pom 属 A 独占，B 未擅自修改）：
+  ```xml
+  <dependency>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+      <version>2.0.31</version>
+  </dependency>
+  ```
+- 未加依赖时：PDF 调用抛"需要 Apache PDFBox 依赖"的业务异常，**不影响编译与其它测试**（反射解耦）。
+- 加依赖后：PDF 转图自动生效，B 侧代码零改动。详见 `ORCHESTRATION-CONTRACT.md` 第 4 节。
 
 ## 风险规则引擎（阶段三）
 
