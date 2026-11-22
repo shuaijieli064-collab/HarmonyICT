@@ -53,6 +53,15 @@ export const FACT_STATUS_MAP = {
   unverified: { label: "待核实", text: "text-muted", bg: "bg-secondary/15" },
 } as const;
 
+/** 实体类型 → 展示文案（契约 5.1：person/asset/event/document/org） */
+export const ENTITY_TYPE_MAP = {
+  person: "人物",
+  asset: "资产",
+  event: "事件",
+  document: "文档",
+  org: "组织",
+} as const;
+
 /** 允许上传的文件类型与大小上限（契约 docs/api-specification.md 4.1：≤20MB，pdf/docx/xlsx/txt/md/png/jpg） */
 export const UPLOAD_ACCEPT = ".pdf,.docx,.xlsx,.txt,.md,.png,.jpg,.jpeg";
 export const UPLOAD_MAX_SIZE = 20 * 1024 * 1024;
