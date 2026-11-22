@@ -19,6 +19,7 @@ public enum ResultCode {
     WORLD_ENTITY_NOT_FOUND(20101, "实体不存在"),
     WORLD_FACT_NOT_FOUND(20102, "事实不存在"),
     WORLD_FACT_CONFLICT(20103, "事实状态冲突"),
+    WORLD_ENTITY_DUPLICATE(20104, "同类型实体名称已存在"),
 
     // 文件与接入模块 3xxxx
     FILE_EMPTY(30101, "上传文件为空"),

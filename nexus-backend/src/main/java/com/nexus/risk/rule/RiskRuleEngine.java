@@ -2,6 +2,8 @@ package com.nexus.risk.rule;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.nexus.risk.entity.WorldRisk;
+import com.nexus.risk.entity.WorldRiskFact;
+import com.nexus.risk.mapper.WorldRiskFactMapper;
 import com.nexus.risk.mapper.WorldRiskMapper;
 import com.nexus.world.entity.WorldFact;
 import com.nexus.world.mapper.WorldFactMapper;
@@ -35,10 +37,13 @@ public class RiskRuleEngine {
 
     private final WorldFactMapper factMapper;
     private final WorldRiskMapper riskMapper;
+    private final WorldRiskFactMapper riskFactMapper;
 
-    public RiskRuleEngine(WorldFactMapper factMapper, WorldRiskMapper riskMapper) {
+    public RiskRuleEngine(WorldFactMapper factMapper, WorldRiskMapper riskMapper,
+                          WorldRiskFactMapper riskFactMapper) {
         this.factMapper = factMapper;
         this.riskMapper = riskMapper;
+        this.riskFactMapper = riskFactMapper;
     }
 
     /**
@@ -115,6 +120,9 @@ public class RiskRuleEngine {
         risk.setCreatedAt(now);
         risk.setUpdatedAt(now);
         riskMapper.insert(risk);
+        // P1-6 拍板（联调 2026-11-22）：风险-证据事实关联落库，支撑"某事实影响了哪些风险"反查；
+        // 事实链式失效后关联保留，保证风险结论可追溯
+        riskFactMapper.insert(new WorldRiskFact(risk.getId(), fact.getId()));
         return 1;
     }
 }

@@ -71,6 +71,9 @@ CREATE TABLE IF NOT EXISTS world_facts (
 );
 CREATE INDEX IF NOT EXISTS idx_wf_user_subject_pred ON world_facts (user_id, subject_id, predicate);
 CREATE INDEX IF NOT EXISTS idx_wf_user_source ON world_facts (user_id, source_id);
+-- P1-5 拍板（联调 2026-11-22）：同源同主体同谓词视为同一事实版本，唯一索引挡重抽重复；
+-- source_id 为 NULL 的人工录入不参与唯一约束（标准 NULL 语义），重抽写入走服务层链式失效（upsert）
+CREATE UNIQUE INDEX IF NOT EXISTS uk_wf_src_fact ON world_facts (user_id, source_id, subject_id, predicate);
 
 CREATE TABLE IF NOT EXISTS world_events (
     id          BIGINT PRIMARY KEY,
@@ -104,6 +107,15 @@ CREATE TABLE IF NOT EXISTS world_risks (
     CONSTRAINT chk_risk_status CHECK (status IN ('open','acknowledged','resolved'))
 );
 CREATE INDEX IF NOT EXISTS idx_wr_user_status_level ON world_risks (user_id, status, level);
+
+-- P1-6 拍板（联调 2026-11-22）：风险-证据事实关联表，一条风险可对应多条证据事实；
+-- 不用数组列：违反范式、无法反查"某事实影响了哪些风险"、无法加外键
+CREATE TABLE IF NOT EXISTS world_risk_facts (
+    risk_id BIGINT NOT NULL REFERENCES world_risks(id),
+    fact_id BIGINT NOT NULL REFERENCES world_facts(id),
+    PRIMARY KEY (risk_id, fact_id)
+);
+CREATE INDEX IF NOT EXISTS idx_wrf_fact ON world_risk_facts (fact_id);
 
 CREATE TABLE IF NOT EXISTS tasks (
     id          BIGINT PRIMARY KEY,

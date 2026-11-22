@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexus.common.exception.BizException;
 import com.nexus.common.result.PageResult;
 import com.nexus.common.result.ResultCode;
+import com.nexus.common.util.EntityNameNormalizer;
 import com.nexus.world.dto.EntityCreateRequest;
 import com.nexus.world.dto.EntityResponse;
 import com.nexus.world.dto.EntityUpdateRequest;
@@ -45,6 +46,18 @@ public class WorldEntityServiceImpl implements WorldEntityService {
     @Override
     public EntityResponse create(Long userId, EntityCreateRequest request) {
         validateJson(request.attributes());
+        // P1-7 拍板（联调 2026-11-22）：判重前按统一规则归一化，"华为 "/"ＨＵＡＷＥＩ"/"huawei" 视为同名；
+        // 归一化值不落库，同类型实体量小实时比对即可，量大再补 name_normalized 列 + 索引
+        String normalized = EntityNameNormalizer.normalize(request.name());
+        List<WorldEntity> sameType = entityMapper.selectList(new LambdaQueryWrapper<WorldEntity>()
+                .eq(WorldEntity::getUserId, userId)
+                .eq(WorldEntity::getEntityType, request.entityType())
+                .eq(WorldEntity::getStatus, 1));
+        boolean duplicate = sameType.stream()
+                .anyMatch(e -> EntityNameNormalizer.normalize(e.getName()).equals(normalized));
+        if (duplicate) {
+            throw new BizException(ResultCode.WORLD_ENTITY_DUPLICATE);
+        }
         Instant now = Instant.now();
         WorldEntity entity = new WorldEntity();
         entity.setUserId(userId);

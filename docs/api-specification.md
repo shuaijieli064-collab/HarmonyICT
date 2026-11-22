@@ -127,12 +127,13 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 ```
 `entityType` 取值：`person / asset / event / document / org`。
 **`attributes` 类型说明（2026-11-22 与前端对齐）**：实体扩展属性以 **JSON 字符串**（非对象）传输与存储（TEXT 列，见 database-design.md 设计原则 6——H2/PG 双端 DDL 统一）。前端取值需 `JSON.parse(attributes)`，提交需 `JSON.stringify(...)`；`attributes` 为 `{}` 或非对象 JSON（如数组）也合法。
+**实体判重说明（P1-7 拍板，2026-11-22 联调）**：`POST /api/v1/entities` 判重前对 `name` 做统一归一化（trim 含全角空格 → NFKC 全/半角 → 折叠空白 → 英文小写），同 `userId + entityType + 归一化名` 已存在 active 实体时返回 `20104 同类型实体名称已存在`。归一化仅用于比对，`name` 仍存原始展示名；不做中文繁简转换。错误码 20104 已入统一错误码表。
 
 ### 5.2 事实
 
 | 接口 | 说明 |
 | --- | --- |
-| `POST /api/v1/facts` | 创建：`{ "subjectId", "predicate": "monthly_income", "objectValue": "12000", "sourceId"(可选), "validFrom"(可选), "validUntil"(可选，证书类事实到期时间，CERT_EXPIRY_30D 规则依赖), "valueType"(可选), "unit"(可选), "normalizedValue"(可选), "evidence"(可选) }` |
+| `POST /api/v1/facts` | 创建：`{ "subjectId", "predicate": "monthly_income", "objectValue": "12000", "sourceId"(可选), "validFrom"(可选), "validUntil"(可选，证书类事实到期时间，CERT_EXPIRY_30D 规则依赖), "valueType"(可选), "unit"(可选), "normalizedValue"(可选), "evidence"(可选), "confidence"(可选，0-1，抽取写入必传，人工录入缺省 1.0), "factStatus"(可选，confirmed/inferred/unverified，抽取写入必传，人工录入缺省 confirmed) }`。**P0 拍板（2026-11-22 联调）**：抽取写入须显式携带 confidence/factStatus 落库，不再服务端硬编码；带 sourceId 的重复抽取自动链式失效旧 active 行（upsert 语义，P1-5 拍板） |
 | `GET /api/v1/facts` | 分页：`page/pageSize/subjectId(可选)/predicate(可选)/sourceId(可选)/status(默认 active)`；`sourceId` 为抽取结果轮询入口（见 4.2） |
 | `GET /api/v1/facts/{id}` | 详情 |
 | `PUT /api/v1/facts/{id}` | 更新 objectValue：旧事实置 superseded，新事实落库（链式失效） |
