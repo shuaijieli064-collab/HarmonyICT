@@ -192,10 +192,12 @@ CREATE TABLE IF NOT EXISTS world_facts (
     valid_from   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     valid_until  TIMESTAMP,                                -- NULL 表示当前有效
     status       VARCHAR(16)  NOT NULL DEFAULT 'active',
-    fact_status  VARCHAR(16)  NOT NULL DEFAULT 'confirmed', -- 抽取侧事实状态，取值以 extraction-schema.md 为准（B 确认后补 CHECK 兜底）
+    fact_status  VARCHAR(16)  NOT NULL DEFAULT 'confirmed', -- 抽取侧事实状态：confirmed/inferred/unverified（B 已确认）
     created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_fact_status CHECK (status IN ('active','superseded','retracted')),
+    -- 命名为 _enum 后缀：chk_fact_status 已被 status 列约束占用（B review 反馈）
+    CONSTRAINT chk_fact_status_enum CHECK (fact_status IN ('confirmed','inferred','unverified')),
     CONSTRAINT chk_fact_confidence CHECK (confidence >= 0 AND confidence <= 1)
 );
 CREATE INDEX IF NOT EXISTS idx_wf_user_subject_pred ON world_facts (user_id, subject_id, predicate);

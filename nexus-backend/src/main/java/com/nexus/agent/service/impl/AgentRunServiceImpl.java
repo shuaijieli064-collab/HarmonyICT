@@ -33,14 +33,17 @@ public class AgentRunServiceImpl implements AgentRunService {
     private final AgentRunMapper runMapper;
     private final AgentActionLogMapper logMapper;
     private final AgentOrchestrationRunner orchestrationRunner;
+    private final AgentActionExecutor actionExecutor;
     private final AgentRunService selfProxy;
 
     public AgentRunServiceImpl(AgentRunMapper runMapper, AgentActionLogMapper logMapper,
                                AgentOrchestrationRunner orchestrationRunner,
+                               AgentActionExecutor actionExecutor,
                                @Lazy AgentRunService selfProxy) {
         this.runMapper = runMapper;
         this.logMapper = logMapper;
         this.orchestrationRunner = orchestrationRunner;
+        this.actionExecutor = actionExecutor;
         this.selfProxy = selfProxy;
     }
 
@@ -93,13 +96,15 @@ public class AgentRunServiceImpl implements AgentRunService {
         requireRun(userId, id);
         List<Long> logIds = request.logIds();
         if (Boolean.TRUE.equals(request.approve())) {
-            // 授权留痕：authorized=true 后执行器才允许真正执行 L2 操作（阶段四联调）
+            // 授权留痕：authorized=true 表示用户放行该写操作
             logMapper.update(null, new LambdaUpdateWrapper<AgentActionLog>()
                     .eq(AgentActionLog::getUserId, userId)
                     .eq(AgentActionLog::getRunId, id)
                     .in(AgentActionLog::getId, logIds)
                     .set(AgentActionLog::getAuthorized, true)
                     .set(AgentActionLog::getUpdatedAt, Instant.now()));
+            // 授权后立即执行已授权动作（B review 反馈缺口：此前只改状态不执行）
+            actionExecutor.executeAuthorized(userId, id);
         } else {
             logMapper.update(null, new LambdaUpdateWrapper<AgentActionLog>()
                     .eq(AgentActionLog::getUserId, userId)
