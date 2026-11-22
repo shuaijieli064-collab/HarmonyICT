@@ -6,15 +6,17 @@ import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
 import { useIsLoggedIn, useUsername } from "@/hooks/use-auth";
 import { clearAuth } from "@/services/auth";
+import ThemeToggle from "@/components/layout/theme-toggle";
 
-/** 桌面端左侧导航栏（≥1024px 常驻），底部含登录态入口（useSyncExternalStore 订阅） */
+/** 桌面端左侧导航栏（≥1024px 常驻），底部含登录态入口（useSyncExternalStore 订阅）。
+ * 侧边栏与画布同色不加玻璃（避免大面积 backdrop-filter 的性能开销），仅激活项用玻璃面 */
 export default function SideNav() {
   const pathname = usePathname();
   const loggedIn = useIsLoggedIn();
   const username = useUsername();
 
   return (
-    <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r border-secondary/10 bg-card">
+    <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r border-secondary/10 bg-transparent">
       <div className="flex h-14 items-center px-6">
         <span className="text-lg font-bold text-primary">NEXUS</span>
         <span className="ml-2 text-xs text-secondary">个人资料智能管家</span>
@@ -39,6 +41,10 @@ export default function SideNav() {
         })}
       </nav>
       <div className="space-y-2 border-t border-secondary/10 px-6 py-4 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-muted">主题</span>
+          <ThemeToggle />
+        </div>
         {loggedIn ? (
           <>
             <p className="text-secondary">

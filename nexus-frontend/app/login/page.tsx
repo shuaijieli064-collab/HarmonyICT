@@ -81,7 +81,7 @@ export default function LoginPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
-            className="w-full rounded-lg border border-secondary/20 bg-base px-3 py-2 text-sm text-content outline-none focus:border-primary"
+            className="glass-input w-full rounded-lg px-3 py-2 text-sm text-content"
             placeholder="3-32 个字符"
           />
         </div>
@@ -93,7 +93,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete={mode === "login" ? "current-password" : "new-password"}
-            className="w-full rounded-lg border border-secondary/20 bg-base px-3 py-2 text-sm text-content outline-none focus:border-primary"
+            className="glass-input w-full rounded-lg px-3 py-2 text-sm text-content"
             placeholder="8-64 个字符"
           />
         </div>
@@ -105,7 +105,7 @@ export default function LoginPage() {
                 id="nickname"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                className="w-full rounded-lg border border-secondary/20 bg-base px-3 py-2 text-sm text-content outline-none focus:border-primary"
+                className="glass-input w-full rounded-lg px-3 py-2 text-sm text-content"
               />
             </div>
             <div>
@@ -115,7 +115,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-secondary/20 bg-base px-3 py-2 text-sm text-content outline-none focus:border-primary"
+                className="glass-input w-full rounded-lg px-3 py-2 text-sm text-content"
               />
             </div>
           </>
@@ -126,7 +126,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60"
+          className="btn-glow w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60"
         >
           {submitting ? "提交中…" : mode === "login" ? "登录" : "注册并登录"}
         </button>

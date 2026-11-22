@@ -5,15 +5,16 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
+import ThemeToggle from "@/components/layout/theme-toggle";
 
-/** 移动端顶部导航（<1024px），汉堡菜单展开页面列表 */
+/** 移动端顶部导航（<1024px），汉堡菜单展开页面列表；玻璃固定层（glass-nav） */
 export default function MobileNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const current = NAV_ITEMS.find((item) => item.href === pathname);
 
   return (
-    <header className="lg:hidden border-b border-secondary/10 bg-card">
+    <header className="glass-nav sticky top-0 z-40 lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
         <Link href="/" className="text-base font-bold text-primary">
           NEXUS
@@ -21,6 +22,7 @@ export default function MobileNav() {
         <span className="flex-1 pl-3 text-sm text-secondary">
           {current ? current.label : "驾驶舱"}
         </span>
+        <ThemeToggle />
         <button
           type="button"
           aria-label="打开导航菜单"
