@@ -1,7 +1,8 @@
 # PR 描述模板：feature/ai-b → develop（契约整合）
 
-> 用途：`gh` 未认证时，可复制到 GitHub 网页创建 PR 的正文框；认证后也可作为 `gh pr create --body-file` 的输入。
-> 注意：按 `docs/00`，合并需三方确认；本 PR 含 A 的后端骨架（先前已 merge 进 ai-b）+ B 的 AI 实现与契约文档。
+> 用途：作为 PR 正文模板保留。**实际提 PR 请用 `nexus-ai/PR-BODY.md`**（已按 rebase develop 967f883 后的真实状态更新，可直接 `--body-file`）。
+> 本文件为历史模板，数据已过时（22/22、develop c883022 等），仅作格式参考。
+> 注意：按 `docs/00`，合并需三方确认；本 PR 基于 develop 967f883 rebase，只含 B 侧 AI 实现与契约文档（A 的后端骨架已在 develop）。
 
 ---
 
