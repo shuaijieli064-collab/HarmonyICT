@@ -72,6 +72,34 @@ public class WorldEntityServiceImpl implements WorldEntityService {
     }
 
     @Override
+    public Long findOrCreateByNormalizedName(Long userId, String entityType, String name, String attributes) {
+        validateJson(attributes);
+        String normalized = EntityNameNormalizer.normalize(name);
+        List<WorldEntity> sameType = entityMapper.selectList(new LambdaQueryWrapper<WorldEntity>()
+                .eq(WorldEntity::getUserId, userId)
+                .eq(WorldEntity::getEntityType, entityType)
+                .eq(WorldEntity::getStatus, 1));
+        WorldEntity matched = sameType.stream()
+                .filter(e -> EntityNameNormalizer.normalize(e.getName()).equals(normalized))
+                .findFirst()
+                .orElse(null);
+        if (matched != null) {
+            return matched.getId();
+        }
+        Instant now = Instant.now();
+        WorldEntity entity = new WorldEntity();
+        entity.setUserId(userId);
+        entity.setEntityType(entityType);
+        entity.setName(name);
+        entity.setAttributes(attributes == null ? "{}" : attributes);
+        entity.setStatus(1);
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
+        entityMapper.insert(entity);
+        return entity.getId();
+    }
+
+    @Override
     public EntityResponse get(Long userId, Long id) {
         return EntityResponse.from(requireEntity(userId, id));
     }
