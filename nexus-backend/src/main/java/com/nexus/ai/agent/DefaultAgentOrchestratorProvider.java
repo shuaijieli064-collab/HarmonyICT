@@ -133,7 +133,8 @@ public class DefaultAgentOrchestratorProvider implements AgentOrchestratorProvid
         payload.put("factId", target.id());
         payload.put("predicate", target.predicate());
         payload.put("currentValue", target.objectValue());
-        payload.put("proposedValue", proposedValue);
+        // 字段名须与 A 的 AgentActionExecutor 一致：授权后执行器读取 objectValue
+        payload.put("objectValue", proposedValue);
 
         return List.of(action(UPDATE_FACT, payload,
                 "用户要求更新世界模型事实；写操作须用户授权后执行（L2）"));

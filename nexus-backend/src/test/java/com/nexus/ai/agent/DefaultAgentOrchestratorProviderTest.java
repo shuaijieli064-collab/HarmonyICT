@@ -67,7 +67,7 @@ class DefaultAgentOrchestratorProviderTest {
         assertEquals("update_fact", action.actionType());
         assertEquals("L2", action.level());
         assertEquals(200L, action.payload().get("factId"));
-        assertEquals("2027-01-18", action.payload().get("proposedValue"));
+        assertEquals("2027-01-18", action.payload().get("objectValue"));
         assertTrue(result.summary().contains("授权"));
     }
 
