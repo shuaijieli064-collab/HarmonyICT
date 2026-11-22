@@ -1,29 +1,249 @@
 @import "tailwindcss";
 
 /*
- * NEXUS 设计系统 Token（深色科技感驾驶舱）
- * 详见 docs/design-system.md，全站颜色/字体/语义统一从此处取值
+ * NEXUS 设计系统 Token · 「暗夜玻璃」(Dark Glassmorphism)
+ * 视觉语言：深色画布 + 单色克制 UI + 靛紫光效 + 玻璃拟态层级
+ * 重构拍板 2026-11-22：深浅双主题（默认深色，data-theme="light" 切换），
+ * 语义 token 名沿用 C 的原始命名（base/card/content/secondary/...）保证组件层兼容。
+ * 详见 docs/design-system.md
  */
-@theme {
-  --color-base: #0b0f1a;
-  --color-card: #111827;
-  --color-card-hover: #1a2233;
-  --color-primary: #22d3ee;
-  --color-primary-dark: #0891b2;
-  --color-accent: #a78bfa;
-  --color-success: #34d399;
-  --color-warning: #fbbf24;
-  --color-danger: #f87171;
-  --color-content: #f1f5f9;
-  --color-secondary: #94a3b8;
-  --color-muted: #475569;
+
+/* ── 1. 原始变量层（运行时切换）────────────────────────── */
+
+:root {
+  /* 画布与表面 */
+  --bg-canvas: #050506;
+  --bg-canvas-elev: #08080a;
+  --bg-ambient-1: rgba(99, 102, 241, 0.07);
+  --bg-ambient-2: rgba(168, 85, 247, 0.05);
+
+  /* 玻璃表面（半透明，配合 backdrop-filter）*/
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-bg-hover: rgba(255, 255, 255, 0.07);
+  --glass-bg-strong: rgba(255, 255, 255, 0.09);
+  --glass-blur: 16px;
+  --glass-blur-strong: 24px;
+
+  /* 文字 */
+
+  --text-primary: #ededef;
+  --text-secondary: #a1a1aa;
+  --text-muted: #6b6f76;
+  --text-inverse: #0a0a0c;
+
+  /* 主色与强调 */
+  --accent: #6366f1;
+  --accent-hover: #7c7ff5;
+  --accent-glow: rgba(99, 102, 241, 0.35);
+  --accent-secondary: #a855f7;
+
+  /* 语义色 */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
+
+  /* 边框 */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-glass: rgba(255, 255, 255, 0.10);
+  --border-glass-hover: rgba(255, 255, 255, 0.14);
+  --border-accent: rgba(99, 102, 241, 0.45);
+
+  /* 阴影 */
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 24px var(--accent-glow);
+}
+
+[data-theme="light"] {
+  /* 浅色玻璃（白磨砂）：玻璃面用白色高透明度，边框转黑系低透明度 */
+  --bg-canvas: #f7f7f8;
+  --bg-canvas-elev: #ffffff;
+  --bg-ambient-1: rgba(99, 102, 241, 0.06);
+  --bg-ambient-2: rgba(168, 85, 247, 0.04);
+
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-hover: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.80);
+
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
+  --text-inverse: #ffffff;
+
+  --accent-glow: rgba(99, 102, 241, 0.25);
+
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-glass: rgba(0, 0, 0, 0.08);
+  --border-glass-hover: rgba(0, 0, 0, 0.12);
+  --border-accent: rgba(99, 102, 241, 0.55);
+
+  --shadow-glass: 0 8px 32px rgba(24, 24, 27, 0.10);
+  --shadow-glow: 0 0 24px var(--accent-glow);
+}
+
+/* ── 2. Tailwind 桥接层（inline 使工具类在运行时跟随 data-theme）── */
+
+@theme inline {
+  --color-base: var(--bg-canvas);
+  --color-card: var(--glass-bg);
+  --color-card-hover: var(--glass-bg-hover);
+  --color-primary: var(--accent);
+  --color-primary-dark: var(--accent-hover);
+  --color-accent: var(--accent-secondary);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-content: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
   /* 系统字体栈：零外网依赖（离线构建必过），中文优先 PingFang/微软雅黑 */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Consolas, "Cascadia Mono", "Courier New", monospace;
 }
 
+/* ── 3. 全局基底：环境光画布（玻璃效果成立的前提）──────── */
+
 body {
-  background: var(--color-base);
-  color: var(--color-content);
+  background-color: var(--bg-canvas);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% -10%, var(--bg-ambient-1), transparent),
+    radial-gradient(ellipse 60% 40% at 85% 5%, var(--bg-ambient-2), transparent);
+  background-attachment: fixed;
+  color: var(--text-primary);
+}
+
+/* ── 4. 玻璃拟态工具类 ──────────────────────────────────── */
+
+/* 卡片玻璃面：滚动内容区使用，同屏数量建议 ≤ 8 个（合成层性能）*/
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  transition: background 180ms ease-out, border-color 180ms ease-out,
+    box-shadow 180ms ease-out;
+}
+
+.glass-card:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--border-glass-hover);
+  box-shadow: var(--shadow-glass);
+}
+
+/* 固定层玻璃（顶部导航/弹层）：更高模糊与更实底 */
+.glass-nav {
+  background: var(--glass-bg-strong);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(140%);
+}
+
+/* 输入框玻璃面 */
+.glass-input {
+  background: color-mix(in srgb, var(--glass-bg) 60%, transparent);
+  border: 1px solid var(--border-subtle);
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.glass-input:focus,
+.glass-input:focus-visible {
+  outline: none;
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* 主按钮光晕（强调按钮必须有光晕，是视觉语言的一部分）*/
+.btn-glow {
+  box-shadow: var(--shadow-glow);
+  transition: box-shadow 180ms ease-out, background 180ms ease-out;
+}
+
+.btn-glow:hover {
+  box-shadow: 0 0 32px var(--accent-glow);
+}
+
+/* 玻璃组件上缘 1px 受光高光（工艺感细节）*/
+.glass-card::before,
+.glass-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  pointer-events: none;
+}
+
+.glass-card,
+.glass-nav {
+  position: relative;
+}
+
+/* ── 4.5 全局玻璃化杠杆：所有 bg-card 用法自动获得模糊（零组件改动）──
+ * 15 个组件使用 bg-card 模式；token 层已使其半透明，此处统一追加 backdrop-filter。
+ * 例外：大面积容器（侧边栏）应改用 bg-transparent，避免整屏模糊的性能开销 */
+.bg-card {
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+}
+
+/* ── 5. Shimmer 微光扫过（hover 触发，克制使用）────────── */
+
+@keyframes shimmer-sweep {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.06) 48%,
+    rgba(255, 255, 255, 0.10) 50%,
+    rgba(255, 255, 255, 0.06) 52%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  opacity: 0;
+  transition: opacity 250ms ease-out;
+  pointer-events: none;
+}
+
+.shimmer:hover::after {
+  opacity: 1;
+  animation: shimmer-sweep 1.1s ease-out;
+}
+
+/* ── 6. 降级与可访问性 ──────────────────────────────────── */
+
+/* 不支持 backdrop-filter 的浏览器：加深底色保证可读性 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-card,
+  .glass-nav,
+  .glass-input {
+    background: var(--bg-canvas-elev);
+  }
+}
+
+/* 尊重减弱动态偏好：shimmer 与扫光停用 */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    display: none;
+  }
+  .glass-card,
+  .glass-card:hover {
+    transition: none;
+  }
 }
