@@ -70,6 +70,13 @@ public class DefaultExtractionProvider implements ExtractionProvider {
             try {
                 ExtractionOutputParser.ParsedExtraction parsed = outputParser.parse(
                         response.content(), properties.getExtraction().getMinConfidence());
+                // E-PREDICATE：Parser 层逐条丢弃并记 warning；Provider 对外阻断整份（90013），
+                // 不重试，避免模型「凑词」。禁止把未登记谓词静默入库（extraction-schema.md 第 8 节）。
+                if (parsed.warnings().stream().anyMatch(w -> w.startsWith("E-PREDICATE"))) {
+                    throw new BizException(ResultCode.EXTRACTION_PREDICATE,
+                            "抽取结果含未登记谓词: " + parsed.warnings().stream()
+                                    .filter(w -> w.startsWith("E-PREDICATE")).toList());
+                }
                 if (!parsed.warnings().isEmpty()) {
                     log.info("抽取完成但存在告警 provider={} warnings={}", response.model(), parsed.warnings());
                 }

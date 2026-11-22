@@ -319,7 +319,7 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
 | `E-NO-SOURCE` | 阻断 | 缺少 `source_id` 或 `source_id` 无对应 `world_sources` 记录 | 整份输出拒绝 |
 | `E-NO-EVIDENCE` | 阻断 | fact / event / task 缺少 `evidence.text_snippet` | 该条拒绝，其余照常 |
 | `E-LOW-CONF` | 阻断 | `confidence < 0.50` | 该条不入库，写入 `warnings` |
-| `E-PREDICATE` | 阻断 | `predicate` 不在 5.2 受控词表 | 该条拒绝；不自动映射近似词 |
+| `E-PREDICATE` | 阻断 | `predicate` 不在 5.2 受控词表 | Parser 丢弃该条并记 warning；Provider 对外抛 90013 整份拒绝；不自动映射近似词 |
 | `W-MISSING-FIELD` | 告警 | 关键字段缺失（如订阅无到期日） | 入库，前端提示 |
 | `W-AMBIGUOUS-DATE` | 告警 | 日期格式存在日月歧义 | 按第 6.3 节降置信度 |
 | `W-CONFLICT-VALUE` | 告警 | 同主体同谓词出现冲突值 | 全部降置信度，保留冲突记录 |
@@ -330,6 +330,16 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
 | `W-NO-ENTITY` | 告警 | 事实的 `subject_ref` 无法解析到实体 | 该事实不入库 |
 
 重试策略：`E-SCHEMA` 允许带错误信息重试 1 次；`E-PREDICATE` 不重试，直接拒绝，避免模型「凑词」。
+
+**B 侧 BizException 映射（对齐 A 的 `ResultCode.java`）**：
+
+| ResultCode | code | B 侧触发点 |
+| --- | --- | --- |
+| `EXTRACTION_NO_SOURCE` | 90011 | `DefaultExtractionProvider.extract()`：`sourceId` 为 null / 空白（A 上传接口返回值，禁止自造 UUID） |
+| `EXTRACTION_SCHEMA` | 90012 | `DefaultExtractionProvider.extract()`：`ExtractionSchemaException` 重试耗尽后抛出 |
+| `EXTRACTION_PREDICATE` | 90013 | `DefaultExtractionProvider.extract()`：Parser 输出含 `E-PREDICATE` warning 时抛出（不重试） |
+
+分层说明：`ExtractionOutputParser` 面向调试 / Demo，逐条丢弃非法谓词并保留 warning；`DefaultExtractionProvider` 作为对 A 的正式 Provider 契约，汇总后抛 90013，禁止非法谓词静默入库。
 
 ---
 
@@ -791,11 +801,11 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
   "schema_version": "1.0",
   "extraction_id": "6d5c4b3a-2f1e-4d3c-8b7a-9f8e7d6c5b4a",
   "source": {
-    "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
+    "source_id": "1948123456789012346",
     "file_name": "订阅确认.txt",
     "file_type": "txt",
     "mime_type": "text/plain",
-    "obs_key": "uploads/2026/11/1f2e3d4c/subscription.txt",
+    "obs_key": "uploads/2026/11/1948123456789012346/subscription.txt",
     "sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0",
     "page_count": 1,
     "uploaded_at": "2026-11-18T12:00:00Z"
@@ -808,7 +818,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "entity_type": "subscription",
       "name": "华为云音乐会员",
       "confidence": 0.93,
-      "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
+      "source_id": "1948123456789012346",
       "evidence": { "text_snippet": "您已开通华为云音乐会员", "page": 1 }
     }
   ],
@@ -823,7 +833,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "fact_status": "confirmed",
       "valid_from": "2026-11-18",
       "valid_until": "2026-12-18",
-      "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
+      "source_id": "1948123456789012346",
       "evidence": { "text_snippet": "生效日期：2026-11-18", "page": 1 }
     },
     {
@@ -836,7 +846,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "fact_status": "confirmed",
       "valid_from": "2026-11-18",
       "valid_until": "2026-12-18",
-      "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
+      "source_id": "1948123456789012346",
       "evidence": { "text_snippet": "下次续费日期：2026-12-18", "page": 1 }
     },
     {
@@ -849,7 +859,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "fact_status": "confirmed",
       "valid_from": "2026-11-18",
       "valid_until": "2026-12-18",
-      "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
+      "source_id": "1948123456789012346",
       "evidence": { "text_snippet": "按月订阅", "page": 1 }
     },
     {
@@ -862,7 +872,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "fact_status": "confirmed",
       "valid_from": "2026-11-18",
       "valid_until": "2026-12-18",
-      "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
+      "source_id": "1948123456789012346",
       "evidence": { "text_snippet": "已开启自动续费", "page": 1 }
     }
   ],
@@ -874,7 +884,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "due_at": "2026-12-18T00:00:00+08:00",
       "related_entity_refs": ["ent_1", "fact_2"],
       "confidence": 0.90,
-      "source_id": "1f2e3d4c-5b6a-4978-8c9d-0a1b2c3d4e5f",
+      "source_id": "1948123456789012346",
       "evidence": { "text_snippet": "下次续费日期：2026-12-18", "page": 1 }
     }
   ],
@@ -891,11 +901,11 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
   "schema_version": "1.0",
   "extraction_id": "8c7b6a5d-4e3f-4a2b-9c1d-0e9f8a7b6c5d",
   "source": {
-    "source_id": "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",
+    "source_id": "1948123456789012347",
     "file_name": "学习计划.png",
     "file_type": "image",
     "mime_type": "image/png",
-    "obs_key": "uploads/2026/11/2a3b4c5d/plan.png",
+    "obs_key": "uploads/2026/11/1948123456789012347/plan.png",
     "sha256": "b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef01",
     "page_count": 1,
     "uploaded_at": "2026-11-16T08:00:00Z"
@@ -908,7 +918,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "entity_type": "goal",
       "name": "通过华为 ICT 大赛初赛",
       "confidence": 0.90,
-      "source_id": "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",
+      "source_id": "1948123456789012347",
       "evidence": { "text_snippet": "目标：通过华为ICT大赛初赛", "page": 1 }
     },
     {
@@ -916,7 +926,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "entity_type": "task",
       "name": "完成项目原型",
       "confidence": 0.89,
-      "source_id": "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",
+      "source_id": "1948123456789012347",
       "evidence": { "text_snippet": "11月30日前完成项目原型", "page": 1 }
     }
   ],
@@ -931,7 +941,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "fact_status": "confirmed",
       "valid_from": "2026-11-16",
       "valid_until": "2026-12-20",
-      "source_id": "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",
+      "source_id": "1948123456789012347",
       "evidence": { "text_snippet": "初赛截止：2026年12月20日", "page": 1 }
     },
     {
@@ -944,7 +954,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "fact_status": "confirmed",
       "valid_from": "2026-11-16",
       "valid_until": "2026-11-30T23:59:00+08:00",
-      "source_id": "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",
+      "source_id": "1948123456789012347",
       "evidence": { "text_snippet": "11月30日前完成项目原型", "page": 1 }
     }
   ],
@@ -956,7 +966,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "due_at": "2026-11-30T23:59:00+08:00",
       "related_entity_refs": ["ent_2", "fact_2"],
       "confidence": 0.88,
-      "source_id": "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",
+      "source_id": "1948123456789012347",
       "evidence": { "text_snippet": "11月30日前完成项目原型", "page": 1 }
     }
   ],
@@ -968,7 +978,7 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
       "priority": "high",
       "related_entity_refs": ["ent_2", "fact_2"],
       "confidence": 0.88,
-      "source_id": "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",
+      "source_id": "1948123456789012347",
       "evidence": { "text_snippet": "11月30日前完成项目原型", "page": 1 }
     }
   ],
@@ -986,3 +996,4 @@ A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / pred
 | 版本 | 日期 | 变更 | 作者 |
 | --- | --- | --- | --- |
 | v0.1 | 2026-11-21 | 首版：顶层结构、实体/事实/事件/任务字段、受控谓词表、置信度规则、JSON Schema、入库映射、示例 | B |
+| v0.2 | 2026-11-22 | PR #1 review 对齐：source_id 全量改为雪花数字串（含 13.2/13.3 示例与 obs_key），补 90011-90013 错误码映射，三态 fact_status 确认，level 统一 medium | B |
