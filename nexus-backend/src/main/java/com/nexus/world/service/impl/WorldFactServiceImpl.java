@@ -41,6 +41,11 @@ public class WorldFactServiceImpl implements WorldFactService {
     public FactResponse create(Long userId, FactCreateRequest request) {
         requireSubject(userId, request.subjectId());
         Instant now = Instant.now();
+        // P1-5 拍板（联调 2026-11-22）：同源同主体同谓词视为同一事实版本（uk_wf_src_fact 唯一索引），
+        // 重抽写入前先封口旧 active 行走链式失效，upsert 语义不触发唯一冲突；人工录入（sourceId 为空）不受影响
+        if (request.sourceId() != null) {
+            supersedeActive(userId, request.subjectId(), request.predicate(), now);
+        }
         WorldFact fact = new WorldFact();
         fact.setUserId(userId);
         fact.setSubjectId(request.subjectId());
@@ -52,13 +57,13 @@ public class WorldFactServiceImpl implements WorldFactService {
         fact.setNormalizedValue(request.normalizedValue());
         fact.setEvidence(request.evidence());
         fact.setSourceId(request.sourceId());
-        // 人工录入默认置信度 1.0；AI 抽取路径由 B 写入时显式设置抽取置信度
-        fact.setConfidence(BigDecimal.ONE);
+        // P0 拍板（联调 2026-11-22）：抽取写入显式携带 confidence/factStatus，人工录入缺省兜底 1.0/confirmed
+        fact.setConfidence(request.confidence() == null ? BigDecimal.ONE : request.confidence());
         fact.setValidFrom(request.validFrom() == null ? now : request.validFrom());
         // 证书类事实的到期时间（CERT_EXPIRY_30D 规则依赖），人工登记与抽取写入均走此字段
         fact.setValidUntil(request.validUntil());
         fact.setStatus("active");
-        fact.setFactStatus("confirmed");
+        fact.setFactStatus(request.factStatus() == null ? "confirmed" : request.factStatus());
         fact.setCreatedAt(now);
         fact.setUpdatedAt(now);
         factMapper.insert(fact);
