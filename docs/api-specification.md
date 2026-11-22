@@ -102,6 +102,14 @@
 
 约定：`sourceId` 是后端上传接口分配的雪花数字字符串，B 侧抽取流程只做透传，**禁止自造 UUID**（PR #1 review 阻塞项 1 拍板结论）。
 
+**编排链路落地说明（2026-11-22 阶段四，A 侧 `ExtractionPipelineService`）**：上传落库后自动异步触发（无需额外接口），状态机 `pending → parsing → parsed / failed`：
+1. 文本提取：txt/md 直读 UTF-8；png/jpg/pdf 走 OCR（contentBase64，page_count 由分块回填）；docx/xlsx 解析器暂缺直接置 failed；
+2. AI 抽取：B 的 `ExtractionProvider`（extraction-schema v1.0），谓词经 90013 校验；
+3. 实体 find-or-create：按 10.6 映射 entity_type + 归一化判重幂等复用（不触发 20104）；
+4. 事实落库：confidence/factStatus/valueType/unit/normalizedValue/evidence/validFrom/validUntil 随 extra 透传（P0 拍板）；`valueType` 取值扩展为 extraction-schema 4.3 六值 `string/number/date/datetime/duration/boolean`；
+5. 重抽幂等：同 sourceId 再次上传触发时由 P1-5 唯一键 + 服务层链式失效兜底；
+6. 风险分析：`RiskAnalysisPipelineService` 定时接入 B 的 `RiskAnalysisProvider` 产险落库并写 `world_risk_facts` 证据关联（P1-6），幂等键 (userId, entityId, ruleCode)。
+
 ### 4.3 来源列表 `GET /api/v1/sources`
 
 Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed）。

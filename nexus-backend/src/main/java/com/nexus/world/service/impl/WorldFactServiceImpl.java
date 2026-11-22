@@ -44,7 +44,7 @@ public class WorldFactServiceImpl implements WorldFactService {
         // P1-5 拍板（联调 2026-11-22）：同源同主体同谓词视为同一事实版本（uk_wf_src_fact 唯一索引），
         // 重抽写入前先封口旧 active 行走链式失效，upsert 语义不触发唯一冲突；人工录入（sourceId 为空）不受影响
         if (request.sourceId() != null) {
-            supersedeActive(userId, request.subjectId(), request.predicate(), now);
+            supersedeActive(userId, request.subjectId(), request.predicate(), request.sourceId(), now);
         }
         WorldFact fact = new WorldFact();
         fact.setUserId(userId);
@@ -154,12 +154,15 @@ public class WorldFactServiceImpl implements WorldFactService {
         }
     }
 
-    /** 供 ingestion 等后续模块批量封口使用（预留） */
-    void supersedeActive(Long userId, Long subjectId, String predicate, Instant until) {
+    /** 供 ingestion 等后续模块批量封口使用（预留）。
+     * B review 拍板（2026-11-22）：封口条件必须含 source_id，与 uk_wf_src_fact 唯一键完全对齐——
+     * 否则同主体同谓词、来自不同来源的 active 事实会被误封口（唯一键允许多源并存，封口只应作用于同源重抽） */
+    void supersedeActive(Long userId, Long subjectId, String predicate, Long sourceId, Instant until) {
         factMapper.update(null, new LambdaUpdateWrapper<WorldFact>()
                 .eq(WorldFact::getUserId, userId)
                 .eq(WorldFact::getSubjectId, subjectId)
                 .eq(WorldFact::getPredicate, predicate)
+                .eq(WorldFact::getSourceId, sourceId)
                 .eq(WorldFact::getStatus, "active")
                 .set(WorldFact::getStatus, "superseded")
                 .set(WorldFact::getValidUntil, until)

@@ -25,7 +25,8 @@ public record FactCreateRequest(
         @NotBlank(message = "objectValue 不能为空")
         String objectValue,
 
-        @Pattern(regexp = "string|number|date|boolean", message = "valueType 取值非法")
+        @Pattern(regexp = "string|number|date|datetime|duration|boolean",
+                message = "valueType 取值非法（须为 extraction-schema 4.3 六值之一）")
         String valueType,
 
         @Size(max = 16, message = "unit 长度须不超过 16")

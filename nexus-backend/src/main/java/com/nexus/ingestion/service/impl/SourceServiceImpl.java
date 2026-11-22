@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.nexus.common.exception.BizException;
 import com.nexus.common.result.PageResult;
 import com.nexus.common.result.ResultCode;
+import com.nexus.ingestion.pipeline.ExtractionPipelineService;
 import com.nexus.ingestion.storage.StorageProvider;
 import com.nexus.world.dto.SourceResponse;
 import com.nexus.world.entity.WorldSource;
@@ -37,10 +38,13 @@ public class SourceServiceImpl implements SourceService {
 
     private final WorldSourceMapper sourceMapper;
     private final StorageProvider storageProvider;
+    private final ExtractionPipelineService extractionPipelineService;
 
-    public SourceServiceImpl(WorldSourceMapper sourceMapper, StorageProvider storageProvider) {
+    public SourceServiceImpl(WorldSourceMapper sourceMapper, StorageProvider storageProvider,
+                             ExtractionPipelineService extractionPipelineService) {
         this.sourceMapper = sourceMapper;
         this.storageProvider = storageProvider;
+        this.extractionPipelineService = extractionPipelineService;
     }
 
     @Override
@@ -82,6 +86,8 @@ public class SourceServiceImpl implements SourceService {
         sourceMapper.insert(source);
         log.info("文件上传成功: userId={}, sourceId={}, key={}, provider={}",
                 userId, source.getId(), storageKey, storageProvider.providerName());
+        // 阶段四联调：上传落库后异步触发抽取编排（pending → parsing → parsed/failed，供 C 轮询 facts）
+        extractionPipelineService.processAsync(userId, source.getId());
         return SourceResponse.from(source);
     }
 

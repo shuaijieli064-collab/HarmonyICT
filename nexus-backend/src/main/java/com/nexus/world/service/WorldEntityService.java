@@ -27,4 +27,11 @@ public interface WorldEntityService {
      * 避免"实体已删但事实仍可查"的悬挂数据。
      */
     void delete(Long userId, Long id);
+
+    /**
+     * 抽取入库专用：按归一化名 find-or-create 实体（幂等复用，不抛 20104）。
+     * 与 create() 共用 EntityNameNormalizer 归一化规则（P1-7 拍板）；
+     * 已存在同 userId + entityType + 归一化名的 active 实体时返回其 id，否则创建并返回新 id。
+     */
+    Long findOrCreateByNormalizedName(Long userId, String entityType, String name, String attributes);
 }
