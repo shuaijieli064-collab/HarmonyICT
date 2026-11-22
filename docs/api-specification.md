@@ -115,7 +115,7 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 
 | 接口 | 说明 |
 | --- | --- |
-| `POST /api/v1/entities` | 创建：`{ "entityType": "asset", "name": "XX基金", "attributes": { "amount": 50000 } }` |
+| `POST /api/v1/entities` | 创建：`{ "entityType": "asset", "name": "XX基金", "attributes": "{\"amount\":50000}" }`（attributes 为 **JSON 字符串**，见下方说明） |
 | `GET /api/v1/entities` | 分页：`page/pageSize/entityType(可选)/keyword(可选，按 name 模糊)` |
 | `GET /api/v1/entities/{id}` | 详情 |
 | `PUT /api/v1/entities/{id}` | 更新 name/attributes |
@@ -123,9 +123,10 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 
 响应 `data`（实体）：
 ```json
-{ "id": "1948...", "entityType": "asset", "name": "XX基金", "attributes": { "amount": 50000 }, "createdAt": "...", "updatedAt": "..." }
+{ "id": "1948...", "entityType": "asset", "name": "XX基金", "attributes": "{\"amount\":50000}", "createdAt": "...", "updatedAt": "..." }
 ```
 `entityType` 取值：`person / asset / event / document / org`。
+**`attributes` 类型说明（2026-11-22 与前端对齐）**：实体扩展属性以 **JSON 字符串**（非对象）传输与存储（TEXT 列，见 database-design.md 设计原则 6——H2/PG 双端 DDL 统一）。前端取值需 `JSON.parse(attributes)`，提交需 `JSON.stringify(...)`；`attributes` 为 `{}` 或非对象 JSON（如数组）也合法。
 
 ### 5.2 事实
 
@@ -201,14 +202,16 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 { "id": "1948...", "triggerType": "manual", "intent": "整理本月资产变动", "status": "running",
   "summary": null, "startedAt": "...", "finishedAt": null }
 ```
+`status` 枚举：`running / succeeded / failed / cancelled`（**无 waiting_auth 状态**）。
+**"待授权"判定（2026-11-22 与前端对齐）**：由前端从操作日志推导——日志满足 `level === "L2" && result === "pending" && authorized === false` 即视为待授权，展示授权入口；授权通过（`authorize approve=true`）后后端立即真实执行，前端应刷新 run 详情与任务列表。
 
 响应 `data`（操作日志，嵌套于 run 详情）：
 ```json
 { "id": "1948...", "actionType": "create_task", "level": "L2", "targetType": "task",
-  "targetId": "1948...", "payload": { "title": "更新基金定投比例" }, "result": "pending",
+  "targetId": null, "payload": "{\"title\":\"更新基金定投比例\"}", "result": "pending",
   "authorized": false, "createdAt": "..." }
 ```
-`level`：L0（只读）/ L1（写操作，执行前展示）/ L2（写操作，须 `authorize` 授权后执行，`authorized=true`）。
+**`payload` 类型说明（2026-11-22 与前端对齐）**：操作载荷以 **JSON 字符串**（非对象）传输（TEXT 列），前端展示需 `JSON.parse(payload)`。`targetId`：新建类动作为 `null`（如 create_task 执行成功后回填新任务 id）；授权通过后由后端动作执行器回填。
 
 ## 9. 附录
 
