@@ -22,6 +22,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <pdfbox.version>3.0.5</pdfbox.version>
     </properties>
 
     <dependencies>
@@ -40,6 +41,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Apache PDFBox 3.x：PDF 逐页渲染为图片供 B 的 OCR 链路使用（阶段二遗留 PDF 转图支持；
+             依赖管理归 A，ai 包按 3.x API 编写：Loader.loadPDF + PDFRenderer，渲染 ≤20 页、150 DPI） -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
         </dependency>
 
         <!-- 本地开发用 H2 内存库（PostgreSQL 兼容模式），生产切换华为云 RDS PostgreSQL -->
