@@ -104,8 +104,11 @@ public class AgentActionExecutor {
                 : Integer.valueOf(String.valueOf(payload.get("priority")));
         LocalDate dueDate = payload.get("dueDate") == null ? null
                 : LocalDate.parse(String.valueOf(payload.get("dueDate")));
-        // Agent 派生的任务统一 sourceType=agent，保证行动项来源可审计
-        return new TaskCreateRequest(title, description, priority, dueDate, "agent", null);
+        // Agent 派生的任务统一 sourceType=agent，保证行动项来源可审计；
+        // relatedFactId 为 B 编排器 payload 中的来源事实 id，执行器透传落库（PR #2 review 拍板）
+        return new TaskCreateRequest(title, description, priority, dueDate, "agent", null,
+                payload.get("relatedFactId") == null ? null
+                        : Long.valueOf(String.valueOf(payload.get("relatedFactId"))));
     }
 
     private Map<String, Object> parsePayload(String payloadJson) {

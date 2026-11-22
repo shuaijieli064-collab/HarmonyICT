@@ -10,7 +10,8 @@ import java.time.LocalDate;
 
 /**
  * 任务创建请求，与 api-specification.md 7 节契约一致。
- * sourceType 缺省 manual；riskId 关联来源风险（风险派生行动场景）。
+ * sourceType 缺省 manual；riskId 关联来源风险（风险派生行动场景）；
+ * relatedFactId 关联来源事实（Agent 基于事实派生行动场景，PR #2 review 拍板：执行器透传 B 编排器的 relatedFactId）。
  */
 public record TaskCreateRequest(
         @NotBlank(message = "title 不能为空")
@@ -29,5 +30,7 @@ public record TaskCreateRequest(
         @Pattern(regexp = "manual|risk|agent", message = "sourceType 取值非法")
         String sourceType,
 
-        Long riskId) {
+        Long riskId,
+
+        Long relatedFactId) {
 }

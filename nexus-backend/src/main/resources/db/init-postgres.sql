@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     due_date    DATE,
     source_type VARCHAR(16)   NOT NULL DEFAULT 'manual',
     risk_id     BIGINT        REFERENCES world_risks(id),
+    related_fact_id BIGINT    REFERENCES world_facts(id),
     created_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_task_status CHECK (status IN ('todo','in_progress','done','cancelled')),

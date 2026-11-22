@@ -35,6 +35,9 @@ public class Task {
 
     private Long riskId;
 
+    /** 来源事实 id（Agent 基于事实派生任务的溯源关联，PR #2 review 拍板新增） */
+    private Long relatedFactId;
+
     @TableField("created_at")
     private Instant createdAt;
 
@@ -111,6 +114,14 @@ public class Task {
 
     public void setRiskId(Long riskId) {
         this.riskId = riskId;
+    }
+
+    public Long getRelatedFactId() {
+        return relatedFactId;
+    }
+
+    public void setRelatedFactId(Long relatedFactId) {
+        this.relatedFactId = relatedFactId;
     }
 
     public Instant getCreatedAt() {
