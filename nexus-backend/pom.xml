@@ -45,7 +45,8 @@
 
         <!-- Apache PDFBox 2.x：PDF 逐页渲染为图片供 B 的 OCR 链路使用（阶段二遗留 PDF 转图支持；
              依赖管理归 A；B 侧为反射加载，按 2.0.31 API 编写（PDDocument.load + PDFRenderer），
-             渲染 ≤20 页、150 DPI。版本对齐拍板 2026-11-22：B 的反射调用按 2.x 签名，A 侧依赖从 3.0.5 降对齐 -->
+             渲染 ≤20 页（MAX_PAGES=20 超限截断）、200 DPI。版本对齐拍板 2026-11-22：B 的反射调用按 2.x 签名，A 侧依赖从 3.0.5 降对齐；
+             DPI 拍板 2026-11-22：保持 B 实现 200 DPI（OCR 清晰度优先，单页 PNG 约 1-3MB 在华为 OCR 体积限制内），注释原 150 系笔误已对齐实现 -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
