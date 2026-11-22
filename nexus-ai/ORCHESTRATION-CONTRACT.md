@@ -91,9 +91,9 @@ upload(pending) → [编排] 读文件字节 → OcrProvider.recognize
 
 `HuaweiOcrProvider` 遇到 `mimeType=pdf` 时：逐页转图 → 逐页调华为 OCR → 合并全文、保留真实页码。
 
-### 4.2 需要 A 配合的唯一事项：加依赖
+### 4.2 依赖状态：已由 A 引入（闭环）
 
-`pom.xml` 属 A 侧独占文件，B 未擅自修改。**请在 `nexus-backend/pom.xml` 加入 PDFBox：**
+`pom.xml` 属 A 侧独占文件，B 未擅自修改。A 已通过 PR #6（`7e5fcfe` 引入、`1a51e42` 降对齐）在 `nexus-backend/pom.xml` 加入 PDFBox，版本 **2.0.31**（与 B 反射代码的 2.x 签名一致）：
 
 ```xml
 <dependency>
@@ -103,12 +103,13 @@ upload(pending) → [编排] 读文件字节 → OcrProvider.recognize
 </dependency>
 ```
 
-- 加依赖前：PDF 调用会抛 `BizException`，提示"需要 Apache PDFBox 依赖"，**编译与其它测试不受影响**（反射解耦，B 侧可独立构建）。
-- 加依赖后：PDF 转图自动生效，**B 侧代码零改动**。
+- 依赖缺失时（反射解耦）：PDF 调用抛 `BizException` 提示"需要 Apache PDFBox 依赖"，编译与其它测试不受影响。
+- 依赖到位后：PDF 转图自动生效，**B 侧代码零改动**。当前 develop 已满足，PDF 链路可用。
 
 ### 4.3 约束与已知边界
 
-- 渲染 DPI=200，兼顾文字清晰度与华为 OCR 单图体积上限；超大 PDF（>50 页）建议编排侧限制页数或分批。
+- 渲染 DPI=200，兼顾文字清晰度与华为 OCR 单图体积上限。
+- **页数硬上限 20 页**（`PdfPageRenderer.MAX_PAGES`）：超出仅渲染前 20 页并记 WARN（`totalPages` 与实际渲染页数同日志），防逐页 base64 撑爆堆内存；编排侧如需完整长文档，请分批上传。
 - 加密 PDF / 扫描件（无文字层）依赖 OCR 本身，与转图无关。
 - `page_count` 可由 `PdfPageRenderer` 的页数回填到 `world_sources.page_count`（编排侧可选）。
 

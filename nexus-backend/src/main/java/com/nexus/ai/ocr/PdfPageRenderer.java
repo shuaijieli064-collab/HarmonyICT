@@ -31,6 +31,11 @@ public final class PdfPageRenderer {
     private static final Logger log = LoggerFactory.getLogger(PdfPageRenderer.class);
     /** 渲染 DPI：200 兼顾文字清晰度与华为 OCR 图片体积上限（默认建议 200-300）。 */
     private static final int RENDER_DPI = 200;
+    /**
+     * 单份 PDF 最多渲染页数：防止超长 PDF 逐页转 base64 撑爆堆内存（每页 200 DPI PNG 约 1-3MB）。
+     * 超出部分截断并记 WARN，不静默丢弃 —— 抽取结果会因此缺页，必须留痕。
+     */
+    static final int MAX_PAGES = 20;
 
     private PdfPageRenderer() {
     }
@@ -65,18 +70,22 @@ public final class PdfPageRenderer {
         try {
             document = loadDocument(pdfBytes);
             Object renderer = newPdfRenderer(document);
-            int pageCount = (Integer) document.getClass().getMethod("getNumberOfPages").invoke(document);
+            int totalPages = (Integer) document.getClass().getMethod("getNumberOfPages").invoke(document);
+            int renderPages = resolveRenderPageCount(totalPages);
+            if (renderPages < totalPages) {
+                log.warn("PDF 页数超过上限，仅渲染前 {} 页 totalPages={}（防 OOM 截断）", renderPages, totalPages);
+            }
             Method render = renderer.getClass()
                     .getMethod("renderImageWithDPI", int.class, float.class);
 
-            List<String> pages = new ArrayList<>(pageCount);
-            for (int i = 0; i < pageCount; i++) {
+            List<String> pages = new ArrayList<>(renderPages);
+            for (int i = 0; i < renderPages; i++) {
                 BufferedImage image = (BufferedImage) render.invoke(renderer, i, (float) RENDER_DPI);
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 ImageIO.write(image, "png", out);
                 pages.add(java.util.Base64.getEncoder().encodeToString(out.toByteArray()));
             }
-            log.info("PDF 转图完成 pages={} dpi={}", pageCount, RENDER_DPI);
+            log.info("PDF 转图完成 pages={} totalPages={} dpi={}", renderPages, totalPages, RENDER_DPI);
             return pages;
         } catch (BizException e) {
             throw e;
@@ -87,6 +96,20 @@ public final class PdfPageRenderer {
         } finally {
             closeQuietly(document);
         }
+    }
+
+    /**
+     * 实际渲染页数：不超过 {@link #MAX_PAGES}。
+     * 抽成纯函数便于单测（无需构造真实 PDF）。
+     *
+     * @param totalPages PDF 总页数
+     * @return 需要渲染的页数
+     */
+    static int resolveRenderPageCount(int totalPages) {
+        if (totalPages <= 0) {
+            return 0;
+        }
+        return Math.min(totalPages, MAX_PAGES);
     }
 
     /** 优先 3.x 的 Loader.loadPDF(byte[])，回退 2.x 的 PDDocument.load(byte[])。 */
