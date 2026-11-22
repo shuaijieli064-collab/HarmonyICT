@@ -19,6 +19,7 @@ import org.springframework.web.client.RestClientException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,8 @@ import java.util.Map;
 /**
  * 华为云 OCR Provider（通用文字识别）。
  * 认证方式：IAM 用户名/密码换 X-Auth-Token，缓存 20 分钟；不在代码中硬编码任何凭据。
- * 为什么 PDF 暂不支持：华为云通用文字识别入参为单张图片，PDF 需先转图片（阶段二随 OBS 接入补齐）。
+ * PDF 支持：华为云通用文字识别入参为单张图片，PDF 经 {@link PdfPageRenderer} 逐页转图后逐页识别
+ * （渲染依赖 Apache PDFBox，由 A 在 pom 添加依赖；未添加时 PdfPageRenderer 会抛出明确提示）。
  */
 @Component
 @ConditionalOnProperty(prefix = "nexus.ai", name = "mode", havingValue = "real", matchIfMissing = true)
@@ -73,8 +75,7 @@ public class HuaweiOcrProvider implements OcrProvider {
         }
         String mimeType = request.mimeType() == null ? "" : request.mimeType().toLowerCase();
         if ("pdf".equals(mimeType)) {
-            throw new BizException(ResultCode.INTERNAL_ERROR,
-                    "PDF 需先转换为图片再识别，阶段二接入 PDF 转图");
+            return recognizePdf(request);
         }
 
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -95,6 +96,64 @@ public class HuaweiOcrProvider implements OcrProvider {
         } catch (Exception e) {
             log.error("OCR 响应解析失败", e);
             throw new BizException(ResultCode.INTERNAL_ERROR, "OCR 响应解析失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * PDF 逐页转图后逐页 OCR（华为云通用文字识别只接收单张图片，不支持 PDF 直传）。
+     * 页码在分块中保留，供前端按页高亮原文出处；全文按页顺序拼接。
+     */
+    private OcrRequest.OcrResult recognizePdf(OcrRequest request) {
+        byte[] pdfBytes = Base64.getDecoder().decode(request.contentBase64());
+        List<String> pageImages = PdfPageRenderer.renderToPngBase64(pdfBytes);
+
+        StringBuilder fullText = new StringBuilder();
+        List<OcrRequest.OcrResult.TextBlock> blocks = new ArrayList<>();
+        double confidenceSum = 0;
+        int pageIndex = 0;
+        for (String pageImage : pageImages) {
+            pageIndex++;
+            OcrRequest.OcrResult pageResult = recognizePage(pageImage, pageIndex);
+            if (!pageResult.fullText().isBlank()) {
+                if (!fullText.isEmpty()) {
+                    fullText.append('\n');
+                }
+                fullText.append(pageResult.fullText());
+            }
+            blocks.addAll(pageResult.blocks());
+            confidenceSum += pageResult.confidence();
+        }
+        double overall = pageIndex == 0 ? 0 : confidenceSum / pageIndex;
+        log.info("PDF OCR 完成 pages={} blocks={}", pageIndex, blocks.size());
+        return new OcrRequest.OcrResult(fullText.toString(), blocks, overall);
+    }
+
+    /** 单页图片 OCR：复用通用文字识别接口，把返回的块页码统一改写为真实页码。 */
+    private OcrRequest.OcrResult recognizePage(String imageBase64, int pageNo) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("image", imageBase64);
+        try {
+            String body = buildClient().post()
+                    .uri(String.format(OCR_PATH, properties.getOcr().getProjectId()))
+                    .header("X-Auth-Token", obtainToken())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .body(String.class);
+            OcrRequest.OcrResult raw = parseResult(body);
+            List<OcrRequest.OcrResult.TextBlock> blocks = new ArrayList<>(raw.blocks().size());
+            for (OcrRequest.OcrResult.TextBlock block : raw.blocks()) {
+                blocks.add(new OcrRequest.OcrResult.TextBlock(pageNo, block.text(), block.confidence()));
+            }
+            return new OcrRequest.OcrResult(raw.fullText(), blocks, raw.confidence());
+        } catch (RestClientException e) {
+            log.error("PDF 单页 OCR 失败 pageNo={}", pageNo, e);
+            throw new BizException(ResultCode.INTERNAL_ERROR,
+                    "PDF 第 " + pageNo + " 页 OCR 失败: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("PDF 单页 OCR 响应解析失败 pageNo={}", pageNo, e);
+            throw new BizException(ResultCode.INTERNAL_ERROR,
+                    "PDF 第 " + pageNo + " 页 OCR 响应解析失败: " + e.getMessage());
         }
     }
 

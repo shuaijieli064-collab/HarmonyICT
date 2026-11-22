@@ -35,6 +35,14 @@ public class ExtractionOutputParser {
             "subscription_end_at", "goal_deadline", "project_deadline");
 
     /**
+     * factStatus 三态白名单（对齐 A 的 chk_fact_status_enum CHECK）。
+     * 为什么在此校验：模型可能输出 confirmed/inferred/unverified 之外的值（如历史遗留的
+     * extracted、或自造 verified），若直接透传会在入库时触发 DB CHECK 违规。此处统一降级
+     * 为 unverified 并记告警，保证下游永远拿到合法三态。
+     */
+    private static final Set<String> FACT_STATUSES = Set.of("confirmed", "inferred", "unverified");
+
+    /**
      * 本 Schema 的实体类型映射到 A 的 world_entities.entity_type
      * 枚举（person/asset/event/document/org）
      */
@@ -106,7 +114,7 @@ public class ExtractionOutputParser {
             String objectValue = toObjectText(objectNode);
             String valueType = node.path("valueType").asText("string");
             double confidence = clamp(node.path("confidence").asDouble(0.50));
-            String factStatus = node.path("factStatus").asText("confirmed");
+            String factStatus = normalizeFactStatus(node.path("factStatus").asText("confirmed"), predicate, warnings);
             String snippet = node.path("evidence").path("textSnippet").asText("");
 
             if (snippet.isBlank()) {
@@ -234,6 +242,22 @@ public class ExtractionOutputParser {
 
     private double clamp(double value) {
         return Math.max(0, Math.min(1, value));
+    }
+
+    /**
+     * 归一化并校验 factStatus：合法三态原样返回（统一小写），非法值降级 unverified 并记告警。
+     * 空值按 Schema 约定默认 confirmed（第 4.3 节 fact_status 必填，缺省视为原文直出）。
+     */
+    private String normalizeFactStatus(String raw, String predicate, List<String> warnings) {
+        if (raw == null || raw.isBlank()) {
+            return "confirmed";
+        }
+        String normalized = raw.trim().toLowerCase();
+        if (FACT_STATUSES.contains(normalized)) {
+            return normalized;
+        }
+        warnings.add("W-INVALID-FACT-STATUS: 非法事实状态「" + raw + "」已降级 unverified " + predicate);
+        return "unverified";
     }
 
     private String key(RawFact fact) {
