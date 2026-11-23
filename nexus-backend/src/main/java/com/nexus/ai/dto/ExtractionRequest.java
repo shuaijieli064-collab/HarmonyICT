@@ -16,7 +16,22 @@ import java.util.Map;
  */
 public record ExtractionRequest(String sourceId, String sourceText, List<String> schemaHints) {
 
-    public record ExtractionResult(List<ExtractedFact> facts, double overallConfidence) {
+    /**
+     * 抽取结果。events 与四个顶层字段按 2026-11-23 events 接入拍板补齐；
+     * 两参数构造器保留，供既有单元测试与人工构造场景使用（events 默认为空列表）。
+     *
+     * @param extractionId 单次抽取任务 UUID，用于重试追踪与日志（不落库）
+     * @param source       来源对象快照（不落库）
+     * @param language     BCP 47 语言标签（不落库）
+     * @param extractedAt  抽取完成时间，ISO 8601 UTC 字符串（不落库）
+     */
+    public record ExtractionResult(List<ExtractedFact> facts, double overallConfidence,
+                                   List<ExtractedEvent> events, String extractionId,
+                                   Map<String, Object> source, String language, String extractedAt) {
+
+        public ExtractionResult(List<ExtractedFact> facts, double overallConfidence) {
+            this(facts, overallConfidence, List.of(), null, null, null, null);
+        }
     }
 
     /**
@@ -25,9 +40,30 @@ public record ExtractionRequest(String sourceId, String sourceText, List<String>
      * @param predicate   谓词（对应 world_facts.predicate）
      * @param objectValue 宾值（对应 world_facts.object_value）
      * @param confidence  置信度 0-1
-     * @param extra       附加属性（时间、单位等），实现方自行定义键名并在 extraction-schema.md 登记约定
+     * @param extra       附加属性（时间、单位等），snake_case 为规范键，camelCase 兼容读取
      */
     public record ExtractedFact(String subjectType, String subjectName, String predicate,
                                 String objectValue, double confidence, Map<String, Object> extra) {
+    }
+
+    /**
+     * 抽取事件（extraction-schema.md 第 4.4 节）。时间字段保持 ISO 8601 字符串，
+     * Parser 已完成 +08:00 归一；入库时由编排服务按 start_at > due_at > end_at 选取 occurred_at。
+     *
+     * @param eventId           文档内临时事件 ID（ent/event_N），不落库
+     * @param eventType         schema 10 值枚举，Parser 已映射为 world_events 的 6 值
+     * @param title             事件标题（必填）
+     * @param startAt           开始时间，可为 null
+     * @param endAt             结束时间，可为 null
+     * @param dueAt             截止/续费时间，可为 null
+     * @param relatedEntityRefs 关联实体引用（ent_N），可为 null
+     * @param confidence        置信度 0-1，仅作入库门槛
+     * @param sourceId          A 上传接口返回的雪花 ID 字符串（B 原样透传）
+     * @param evidence          原文证据（text_snippet / page），必填
+     */
+    public record ExtractedEvent(String eventId, String eventType, String title,
+                                 String startAt, String endAt, String dueAt,
+                                 List<String> relatedEntityRefs, double confidence,
+                                 String sourceId, Map<String, Object> evidence) {
     }
 }

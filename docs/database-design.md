@@ -16,6 +16,7 @@
 6. **JSONB→TEXT 变更（2026-11-22，阶段二）**：`world_entities.attributes` 与 `agent_action_logs.payload` 由 JSONB 改为 TEXT 存 JSON 字符串。原因：H2 本地库不支持 JSONB，统一 TEXT 后 H2/PG 双端 DDL 完全一致、应用层用 String 承载；Demo 场景无 JSONB 索引查询需求，代价可接受。B 写事实时不受影响（facts 表无 JSON 字段）。
 7. **PR #1 review 对齐变更（2026-11-22，阶段二）**：① `world_facts` 补 `value_type` / `unit` / `normalized_value` / `fact_status` / `evidence` 五列，`world_sources` 补 `sha256` / `page_count` / `uploaded_at` 三列（对齐 B 侧 `extraction-schema.md` 输出，移交清单 P0-2/P0-3）；② `world_risks.level` 枚举 `mid` 改 `medium`（C 端前端已按 medium 实现）；③ `source_id` 类型拍板：保持 BIGINT，B 侧抽取时透传 A 上传接口返回的 `sourceId`，禁止自造 UUID。详见 PR #1 review 意见与 `ResultCode.java` 新增的 90011-90013 抽取校验错误码。
 8. **PR #2 review 拍板变更（2026-11-22，阶段二）**：`tasks` 补 `related_fact_id BIGINT REFERENCES world_facts(id)`——B 编排器 create_task payload 携带的 `relatedFactId` 由 A 侧执行器透传落库（原执行器不消费会丢失任务与来源事实的关联），与 `risk_id` 风险溯源设计对称。创建任务时校验该事实存在且属于当前用户，不存在返回 `20102`。
+9. **events 接入变更（2026-11-23）**：`tasks.source_type` 枚举补 `extracted`（`schema.sql` 与 `init-postgres.sql` 两处同步）；`world_events` 结构不变。事件按 `(user_id, source_id, title, occurred_at)` 应用层查重，不新增唯一键；`event_type` 10→6 映射见 `docs/events-ingestion-plan.md` 第 3.4 节。
 
 ## 2. ER 关系
 
@@ -119,7 +120,7 @@ erDiagram
 | world_risks.status | open / acknowledged / resolved |
 | tasks.status | todo / in_progress / done / cancelled |
 | tasks.priority | 0(普通) / 1(重要) / 2(紧急) |
-| tasks.source_type | manual / risk / agent |
+| tasks.source_type | manual / risk / agent / extracted（`extracted` 于 2026-11-23 预留，本轮不自动落库） |
 | agent_runs.trigger_type | manual / scheduled / event |
 | agent_runs.status | running / succeeded / failed / cancelled |
 | agent_action_logs.level | L0(读) / L1(写待确认) / L2(写已授权) |

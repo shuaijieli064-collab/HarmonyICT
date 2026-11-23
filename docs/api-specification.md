@@ -194,7 +194,7 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 | `DELETE /api/v1/tasks/{id}` | 删除 |
 
 `status` 合法流转：`todo → in_progress → done`；`todo/in_progress → cancelled`；非法流转返回 `50102`。
-`priority`：0 普通 / 1 重要 / 2 紧急；`sourceType`：`manual / risk / agent`。
+`priority`：0 普通 / 1 重要 / 2 紧急；写入接口 `sourceType`：`manual / risk / agent`。DDL 枚举于 2026-11-23 预留 `extracted`，待 tasks 自动落库时开放写入。
 任务响应含 `riskId` / `relatedFactId`（溯源字段，可能为 null）。
 
 ## 8. Agent 执行记录（阶段三实现）

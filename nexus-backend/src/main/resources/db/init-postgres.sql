@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     updated_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_task_status CHECK (status IN ('todo','in_progress','done','cancelled')),
     CONSTRAINT chk_task_priority CHECK (priority IN (0,1,2)),
-    CONSTRAINT chk_task_source CHECK (source_type IN ('manual','risk','agent'))
+    CONSTRAINT chk_task_source CHECK (source_type IN ('manual','risk','agent','extracted'))
 );
 CREATE INDEX IF NOT EXISTS idx_tk_user_status ON tasks (user_id, status);
 CREATE INDEX IF NOT EXISTS idx_tk_user_due ON tasks (user_id, due_date);

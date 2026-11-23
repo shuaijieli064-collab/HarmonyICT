@@ -32,7 +32,7 @@ class RuleBasedExtractorTest {
 
         assertTrue(findFact(parsed, "subscription_renewal_at").isPresent());
         assertEquals(SOURCE_ID,
-                findFact(parsed, "subscription_renewal_at").orElseThrow().extra().get("sourceId"));
+                findFact(parsed, "subscription_renewal_at").orElseThrow().extra().get("source_id"));
         assertEquals("2026-12-18",
                 findFact(parsed, "subscription_renewal_at").map(ExtractionRequest.ExtractedFact::objectValue)
                         .orElse(""));
@@ -59,8 +59,8 @@ class RuleBasedExtractorTest {
         ExtractionRequest.ExtractedFact warranty = findFact(parsed, "warranty_period").orElseThrow();
         assertEquals("24", warranty.objectValue());
         assertEquals("month", warranty.extra().get("unit"));
-        assertEquals("2028-11-15", warranty.extra().get("validUntil"));
-        assertEquals("inferred", warranty.extra().get("factStatus"));
+        assertEquals("2028-11-15", warranty.extra().get("valid_until"));
+        assertEquals("inferred", warranty.extra().get("fact_status"));
     }
 
     @Test

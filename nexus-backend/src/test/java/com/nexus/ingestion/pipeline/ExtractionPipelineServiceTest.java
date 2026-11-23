@@ -5,10 +5,13 @@ import com.nexus.ai.ExtractionProvider;
 import com.nexus.ai.dto.ExtractionRequest;
 import com.nexus.ai.dto.OcrRequest;
 import com.nexus.ingestion.storage.StorageProvider;
+import com.nexus.world.dto.EventCreateRequest;
 import com.nexus.world.dto.FactCreateRequest;
 import com.nexus.world.entity.WorldSource;
+import com.nexus.world.mapper.WorldEventMapper;
 import com.nexus.world.mapper.WorldSourceMapper;
 import com.nexus.world.service.WorldEntityService;
+import com.nexus.world.service.WorldEventService;
 import com.nexus.world.service.WorldFactService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +24,7 @@ import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -31,11 +35,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * 阶段四编排链路验证：上传 → 异步抽取 → 实体 find-or-create → 事实落库（confidence/factStatus 透传）→ 状态机。
+ * 阶段四编排链路验证：上传 → 异步抽取 → 实体 find-or-create → 事实与事件落库 → 状态机。
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -43,6 +48,9 @@ class ExtractionPipelineServiceTest {
 
     @Mock
     private WorldSourceMapper sourceMapper;
+
+    @Mock
+    private WorldEventMapper eventMapper;
 
     @Mock
     private StorageProvider storageProvider;
@@ -59,19 +67,24 @@ class ExtractionPipelineServiceTest {
     @Mock
     private WorldFactService factService;
 
+    @Mock
+    private WorldEventService eventService;
+
     private ExtractionPipelineService pipeline;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        pipeline = new ExtractionPipelineService(sourceMapper, storageProvider, textExtractor,
-                extractionProvider, entityService, factService, objectMapper);
+        pipeline = new ExtractionPipelineService(sourceMapper, eventMapper, storageProvider, textExtractor,
+                extractionProvider, entityService, factService, eventService, objectMapper);
         when(sourceMapper.selectById(9L)).thenReturn(pendingSource());
         when(sourceMapper.updateById(any(WorldSource.class))).thenReturn(1);
         when(storageProvider.load(1L, "key-9")).thenReturn("stub".getBytes(StandardCharsets.UTF_8));
         when(entityService.findOrCreateByNormalizedName(any(), anyString(), anyString(), anyString()))
                 .thenReturn(100L);
+        when(eventMapper.selectCount(any())).thenReturn(0L);
+        // 事实 extra 保留 camelCase，用于验证兼容兜底读取
         when(extractionProvider.extract(any())).thenReturn(new ExtractionRequest.ExtractionResult(
                 List.of(new ExtractionRequest.ExtractedFact("device", "ThinkPad X1", "price", "8999.00",
                                 0.97, Map.of("entityType", "device", "valueType", "number", "unit", "CNY",
@@ -169,5 +182,67 @@ class ExtractionPipelineServiceTest {
 
         verify(sourceMapper, org.mockito.Mockito.never()).updateById(any(WorldSource.class));
         assertTrue(true);
+    }
+
+    @Test
+    void pipelinePersistsEventWithEntityMappingAndUtcTime() {
+        when(textExtractor.extract(anyString(), any())).thenReturn(
+                new SourceTextExtractor.ExtractedText("全文内容", null, null));
+        when(extractionProvider.extract(any())).thenReturn(new ExtractionRequest.ExtractionResult(
+                List.of(new ExtractionRequest.ExtractedFact("device", "ThinkPad X1", "price", "8999.00",
+                        0.97, Map.of("entity_id", "ent_1", "entity_type", "device",
+                                "evidence", Map.of("text_snippet", "价格 8999")))),
+                0.97,
+                List.of(new ExtractionRequest.ExtractedEvent(
+                        "event_1", "asset", "购买笔记本", "2026-11-15T00:00:00Z", null, null,
+                        List.of("ent_1"), 0.92, "9",
+                        Map.of("text_snippet", "购买日期：2026-11-15"))),
+                null, Map.of(), "zh-CN", null));
+
+        pipeline.processAsync(1L, 9L);
+
+        ArgumentCaptor<EventCreateRequest> captor = ArgumentCaptor.forClass(EventCreateRequest.class);
+        verify(eventService).create(eq(1L), captor.capture());
+        EventCreateRequest created = captor.getValue();
+        assertEquals(100L, created.entityId());
+        assertEquals("asset", created.eventType());
+        assertEquals("购买笔记本", created.title());
+        assertEquals("购买日期：2026-11-15", created.description());
+        assertEquals(Instant.parse("2026-11-15T00:00:00Z"), created.occurredAt());
+        assertEquals(9L, created.sourceId());
+    }
+
+    @Test
+    void pipelineSkipsDuplicateEvent() {
+        when(textExtractor.extract(anyString(), any())).thenReturn(
+                new SourceTextExtractor.ExtractedText("全文内容", null, null));
+        when(eventMapper.selectCount(any())).thenReturn(1L);
+        stubSingleEvent("2026-11-15T00:00:00Z");
+
+        pipeline.processAsync(1L, 9L);
+
+        verify(eventService, never()).create(any(), any());
+    }
+
+    @Test
+    void pipelineSkipsEventWithoutAnyTime() {
+        when(textExtractor.extract(anyString(), any())).thenReturn(
+                new SourceTextExtractor.ExtractedText("全文内容", null, null));
+        stubSingleEvent(null);
+
+        pipeline.processAsync(1L, 9L);
+
+        verify(eventService, never()).create(any(), any());
+    }
+
+    private void stubSingleEvent(String startAt) {
+        when(extractionProvider.extract(any())).thenReturn(new ExtractionRequest.ExtractionResult(
+                List.of(),
+                0,
+                List.of(new ExtractionRequest.ExtractedEvent(
+                        "event_1", "asset", "购买笔记本", startAt, null, null,
+                        List.of("ent_1"), 0.92, "9",
+                        Map.of("text_snippet", "购买日期：2026-11-15"))),
+                null, Map.of(), "zh-CN", null));
     }
 }

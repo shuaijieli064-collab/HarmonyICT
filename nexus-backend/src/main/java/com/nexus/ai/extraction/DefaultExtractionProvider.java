@@ -18,8 +18,7 @@ import com.nexus.common.result.ResultCode;
 
 /**
  * 抽取 Provider 默认实现：Prompt → 大模型 → Schema 校验 → DTO 映射。
- * 为什么只映射 facts：A 的 ExtractionResult 当前只有 facts 字段；事件/任务/证据的完整结构
- * 由抽取 Demo 输出 JSON 保留，入库契约扩展待与 A 走 PR 确认（extraction-schema.md 第 12 节）。
+ * 2026-11-23 events 接入后映射 facts + events 与四个顶层字段；tasks 暂不落库，仅保留在抽取 Demo JSON 中。
  */
 @Component
 public class DefaultExtractionProvider implements ExtractionProvider {
@@ -80,7 +79,9 @@ public class DefaultExtractionProvider implements ExtractionProvider {
                 if (!parsed.warnings().isEmpty()) {
                     log.info("抽取完成但存在告警 provider={} warnings={}", response.model(), parsed.warnings());
                 }
-                return new ExtractionRequest.ExtractionResult(parsed.facts(), parsed.overallConfidence());
+                return new ExtractionRequest.ExtractionResult(
+                        parsed.facts(), parsed.overallConfidence(), parsed.events(),
+                        parsed.extractionId(), parsed.source(), parsed.language(), parsed.extractedAt());
             } catch (ExtractionSchemaException e) {
                 if (attempt >= maxRetries) {
                     log.error("抽取结果不符合 Schema，已重试 {} 次", maxRetries, e);

@@ -586,22 +586,31 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
 
 `event_id` / `task_id` 为临时 ID，入库生成真实主键；`related_entity_refs` 需先解析为真实 ID，解析失败的关联丢弃并记 `W-NO-ENTITY`。`source_id`、`confidence`、`evidence` 同样透传。
 
+**events 入库细则（2026-11-23 拍板，A 侧实施）**：
+
+1. `event_type` 10→6 映射（2026-11-23 已与 B 契约 `f60bb4d` 复核）：`purchase`→`asset`；`payment`/`subscription_start`/`subscription_renewal`/`subscription_expiry`→`contract`；`warranty_expiry`→`asset`；`class`/`exam`→`education`；`deadline`/`other`→`other`。`deadline` 按关联实体细化留后续 PR。
+2. `occurred_at` 按 `start_at` > `due_at` > `end_at` 取值，统一归一 UTC；三者全缺失则该条跳过并记 `W-MISSING-FIELD`，不写 `Instant.now()`。
+3. 幂等：应用层按 `(user_id, source_id, title, occurred_at)` 查重，不加 DDL；`event_id` 仅作文档内临时键。
+4. `evidence.text_snippet` 写 `world_events.description`（≤200 字），`confidence < 0.50` 丢弃且不落库（`world_events` 无该列）。
+5. `related_entity_refs` 仅解析 `ent_*` 引用；`world_events.entity_id` 为单列，多实体关联取第一个成功解析者。
+6. `tasks` 本轮只定结构、透传前端展示，不自动落库；`tasks.source_type` DDL 已预留 `extracted`，自动落库须经 C 的 UI 确认后另开 PR。
+
 ### 10.5 AI DTO `extra` 键约定（与 A 的 `ExtractionRequest.ExtractedFact` 对齐）
 
-A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / predicate / objectValue / confidence / extra`，完整抽取信息通过 `extra` 透传。键名固定如下，实现方（B）与入库方（A）均不得运行时改名：
+A 的 `ExtractionRequest.ExtractedFact` 只有 `subjectType / subjectName / predicate / objectValue / confidence / extra`，完整抽取信息通过 `extra` 透传。键名固定如下，实现方（B）与入库方（A）均不得运行时改名。**2026-11-23 起以 snake_case 为规范键；camelCase 仅 A 侧 Parser/管线临时兼容读取，端到端验收后移除。**
 
 | `extra` 键 | 类型 | 来源 | 入库处理 |
 | --- | --- | --- | --- |
-| `sourceId` | string(snowflake) | 本 Schema 的 `source.source_id`，来自 A 上传接口返回值（B 只透传）；Demo 由 `nexus.ai.demo.source-id` 注入演示值 | 写 `world_facts.source_id`（BIGINT 外键，需 A 先落 `world_sources`） |
-| `entityId` | string | 文档内临时实体 ID，如 `ent_1` | 不入库，仅用于关联 |
-| `entityType` | string | 本 Schema 的 `entity_type` | 按 10.6 映射为 `world_entities.entity_type` |
-| `valueType` | string | `fact.value_type` | 写 `world_facts.value_type`（阶段二已补列） |
+| `source_id` | string(snowflake) | 本 Schema 的 `source.source_id`，来自 A 上传接口返回值（B 只透传）；Demo 由 `nexus.ai.demo.source-id` 注入演示值 | 写 `world_facts.source_id`（BIGINT 外键，需 A 先落 `world_sources`） |
+| `entity_id` | string | 文档内临时实体 ID，如 `ent_1` | 不入库，仅用于关联 |
+| `entity_type` | string | 本 Schema 的 `entity_type` | 按 10.6 映射为 `world_entities.entity_type` |
+| `value_type` | string | `fact.value_type` | 写 `world_facts.value_type`（阶段二已补列） |
 | `unit` | string \| null | `fact.unit` | 写 `world_facts.unit`（阶段二已补列） |
-| `normalizedValue` | string \| null | `fact.normalized_value` | 写 `world_facts.normalized_value`（阶段二已补列） |
-| `factStatus` | string | `confirmed` / `inferred` / `unverified`（见 4.3 节映射） | 写 `world_facts.fact_status`（阶段二已补列） |
-| `validFrom` | string \| null | `YYYY-MM-DD` | 转 TIMESTAMP 写 `world_facts.valid_from` |
-| `validUntil` | string \| null | `YYYY-MM-DD` | 转 TIMESTAMP 写 `world_facts.valid_until` |
-| `evidence` | object | `{ textSnippet, page }` | 序列化写 `world_facts.evidence`（阶段二已补列，TEXT 存 JSON） |
+| `normalized_value` | string \| null | `fact.normalized_value` | 写 `world_facts.normalized_value`（阶段二已补列） |
+| `fact_status` | string | `confirmed` / `inferred` / `unverified`（见 4.3 节映射） | 写 `world_facts.fact_status`（阶段二已补列） |
+| `valid_from` | string \| null | `YYYY-MM-DD` | 转 TIMESTAMP 写 `world_facts.valid_from` |
+| `valid_until` | string \| null | `YYYY-MM-DD` | 转 TIMESTAMP 写 `world_facts.valid_until` |
+| `evidence` | object | `{ text_snippet, page }` | 序列化写 `world_facts.evidence`（阶段二已补列，TEXT 存 JSON） |
 
 > `confidence < 0.50` 的事实已在 B 侧过滤，不会出现在 DTO 中；A 侧入库前只需再校验 `source_id` 与 `subject_id` 映射。
 

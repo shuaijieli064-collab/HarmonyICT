@@ -45,7 +45,12 @@ public class RuleBasedExtractor {
 
     public String extract(String sourceText, String sourceId) {
         Map<String, Object> root = new LinkedHashMap<>();
-        root.put("schemaVersion", "1.0");
+        root.put("schema_version", "1.0");
+        // 四个顶层字段按 extraction-schema 第 9 节补齐；mock 使用固定值保证输出确定性。
+        root.put("extraction_id", "00000000-0000-4000-8000-000000000001");
+        root.put("source", Map.of("source_id", sourceId == null ? "" : sourceId));
+        root.put("language", "zh-CN");
+        root.put("extracted_at", "2026-11-23T00:00:00Z");
         List<Map<String, Object>> entities = new ArrayList<>();
         List<Map<String, Object>> facts = new ArrayList<>();
         List<Map<String, Object>> events = new ArrayList<>();
@@ -53,7 +58,7 @@ public class RuleBasedExtractor {
         List<Map<String, Object>> warnings = new ArrayList<>();
 
         String documentType = detectDocumentType(sourceText);
-        root.put("documentType", documentType);
+        root.put("document_type", documentType);
 
         String firstDate = findDate(sourceText);
         String entityType = "invoice".equals(documentType) ? "device"
@@ -61,8 +66,8 @@ public class RuleBasedExtractor {
         String entityName = detectEntityName(sourceText, documentType);
 
         Map<String, Object> entity = new LinkedHashMap<>();
-        entity.put("entityId", "ent_1");
-        entity.put("entityType", entityType);
+        entity.put("entity_id", "ent_1");
+        entity.put("entity_type", entityType);
         entity.put("name", entityName);
         entity.put("confidence", 0.90);
         entity.put("evidence", evidence(snippetOf(sourceText, 0, 60)));
@@ -88,8 +93,8 @@ public class RuleBasedExtractor {
                 int months = "年".equals(warranty.group(2)) ? period * 12 : period;
                 Map<String, Object> fact = fact("fact_4", "ent_1", "warranty_period", String.valueOf(months),
                         "duration", "month", "P" + months + "M", 0.78, "inferred", warranty.group());
-                fact.put("validFrom", firstDate);
-                fact.put("validUntil", plusMonths(firstDate, months));
+                fact.put("valid_from", firstDate);
+                fact.put("valid_until", plusMonths(firstDate, months));
                 facts.add(fact);
                 warnings.add(warning("W-DATE-INFERRED", "保修截止日由购买日与保修期推算", "fact_4"));
             }
@@ -128,8 +133,8 @@ public class RuleBasedExtractor {
             Matcher task = TASK.matcher(sourceText);
             if (task.find()) {
                 Map<String, Object> taskEntity = new LinkedHashMap<>();
-                taskEntity.put("entityId", "ent_2");
-                taskEntity.put("entityType", "task");
+                taskEntity.put("entity_id", "ent_2");
+                taskEntity.put("entity_type", "task");
                 taskEntity.put("name", task.group(3).trim());
                 taskEntity.put("confidence", 0.88);
                 taskEntity.put("evidence", evidence(task.group()));
@@ -138,11 +143,11 @@ public class RuleBasedExtractor {
                 addFact(facts, "fact_3", "ent_2", "task_due_at", due,
                         "datetime", null, due, 0.86, "confirmed",task.group());
                 Map<String, Object> taskNode = new LinkedHashMap<>();
-                taskNode.put("taskId", "task_1");
+                taskNode.put("task_id", "task_1");
                 taskNode.put("title", task.group(3).trim());
-                taskNode.put("dueAt", due);
+                taskNode.put("due_at", due);
                 taskNode.put("priority", "high");
-                taskNode.put("relatedEntityRefs", List.of("ent_2"));
+                taskNode.put("related_entity_refs", List.of("ent_2"));
                 taskNode.put("confidence", 0.86);
                 taskNode.put("evidence", evidence(task.group()));
                 tasks.add(taskNode);
@@ -153,16 +158,16 @@ public class RuleBasedExtractor {
 
         if (sourceId != null) {
             for (Map<String, Object> item : entities) {
-                item.put("sourceId", sourceId);
+                item.put("source_id", sourceId);
             }
             for (Map<String, Object> item : facts) {
-                item.put("sourceId", sourceId);
+                item.put("source_id", sourceId);
             }
             for (Map<String, Object> item : events) {
-                item.put("sourceId", sourceId);
+                item.put("source_id", sourceId);
             }
             for (Map<String, Object> item : tasks) {
-                item.put("sourceId", sourceId);
+                item.put("source_id", sourceId);
             }
         }
 
@@ -189,17 +194,17 @@ public class RuleBasedExtractor {
             String valueType, String unit, String normalized,
             double confidence, String status, String snippet) {
         Map<String, Object> fact = new LinkedHashMap<>();
-        fact.put("factId", id);
-        fact.put("subjectRef", subjectRef);
+        fact.put("fact_id", id);
+        fact.put("subject_ref", subjectRef);
         fact.put("predicate", predicate);
-        fact.put("objectValue", value);
-        fact.put("valueType", valueType);
+        fact.put("object_value", value);
+        fact.put("value_type", valueType);
         fact.put("unit", unit);
-        fact.put("normalizedValue", normalized);
+        fact.put("normalized_value", normalized);
         fact.put("confidence", confidence);
-        fact.put("factStatus", status);
-        fact.put("validFrom", null);
-        fact.put("validUntil", null);
+        fact.put("fact_status", status);
+        fact.put("valid_from", null);
+        fact.put("valid_until", null);
         fact.put("evidence", evidence(snippet));
         return fact;
     }
@@ -207,13 +212,13 @@ public class RuleBasedExtractor {
     private void addEvent(List<Map<String, Object>> events, String id, String type, String title,
             String startAt, String dueAt, String entityRef, double confidence, String snippet) {
         Map<String, Object> event = new LinkedHashMap<>();
-        event.put("eventId", id);
-        event.put("eventType", type);
+        event.put("event_id", id);
+        event.put("event_type", type);
         event.put("title", title);
-        event.put("startAt", startAt);
-        event.put("endAt", null);
-        event.put("dueAt", dueAt);
-        event.put("relatedEntityRefs", List.of(entityRef));
+        event.put("start_at", startAt);
+        event.put("end_at", null);
+        event.put("due_at", dueAt);
+        event.put("related_entity_refs", List.of(entityRef));
         event.put("confidence", confidence);
         event.put("evidence", evidence(snippet));
         events.add(event);
@@ -223,13 +228,13 @@ public class RuleBasedExtractor {
         Map<String, Object> warning = new LinkedHashMap<>();
         warning.put("code", code);
         warning.put("message", message);
-        warning.put("relatedRef", relatedRef);
+        warning.put("related_ref", relatedRef);
         return warning;
     }
 
     private Map<String, Object> evidence(String snippet) {
         Map<String, Object> evidence = new LinkedHashMap<>();
-        evidence.put("textSnippet", snippet);
+        evidence.put("text_snippet", snippet);
         evidence.put("page", 1);
         return evidence;
     }
