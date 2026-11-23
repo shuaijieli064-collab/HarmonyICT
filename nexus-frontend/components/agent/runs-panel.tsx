@@ -57,6 +57,8 @@ export default function RunsPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  /** L2 授权二次确认：处于确认态的日志 id（对齐答辩脚本的显式授权交互） */
+  const [confirmingLogId, setConfirmingLogId] = useState<string | null>(null);
 
   /** 纯数据拉取（不含 setState），供事件处理器与 effect 复用 */
   const fetchRuns = useCallback(async (): Promise<AgentRun[]> => {
@@ -305,23 +307,52 @@ export default function RunsPanel() {
                     </div>
                   )}
                   {isAuthTarget && (
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void onAuthorize(detail.run.id, [log.id], true)}
-                        disabled={busy}
-                        className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
-                      >
-                        授权执行（L2）
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void onAuthorize(detail.run.id, [log.id], false)}
-                        disabled={busy}
-                        className="rounded-lg border border-danger/40 px-3 py-1.5 text-xs text-danger disabled:opacity-60"
-                      >
-                        拒绝
-                      </button>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {confirmingLogId === log.id ? (
+                        <>
+                          <span className="text-xs text-warning">
+                            确认授权？该操作将真实执行并写入任务/事实
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmingLogId(null);
+                              void onAuthorize(detail.run.id, [log.id], true);
+                            }}
+                            disabled={busy}
+                            className="rounded-lg bg-warning px-3 py-1.5 text-xs font-bold text-black disabled:opacity-60"
+                          >
+                            确认授权
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingLogId(null)}
+                            disabled={busy}
+                            className="rounded-lg border border-secondary/40 px-3 py-1.5 text-xs text-secondary disabled:opacity-60"
+                          >
+                            取消
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingLogId(log.id)}
+                            disabled={busy}
+                            className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+                          >
+                            授权执行（L2）
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void onAuthorize(detail.run.id, [log.id], false)}
+                            disabled={busy}
+                            className="rounded-lg border border-danger/40 px-3 py-1.5 text-xs text-danger disabled:opacity-60"
+                          >
+                            拒绝
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

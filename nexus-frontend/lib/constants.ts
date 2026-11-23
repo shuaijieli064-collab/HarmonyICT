@@ -67,3 +67,7 @@ export const UPLOAD_ACCEPT = ".pdf,.docx,.xlsx,.txt,.md,.png,.jpg,.jpeg";
 export const UPLOAD_MAX_SIZE = 20 * 1024 * 1024;
 /** 上传大小上限的展示文案（MB），避免组件层硬编码与常量不同步 */
 export const UPLOAD_MAX_SIZE_MB = UPLOAD_MAX_SIZE / (1024 * 1024);
+/** Mock 兜底开关：契约暂无对应接口的区块（驾驶舱目标进度/今日行动）是否启用演示数据。
+ * 默认关闭（真实联调态，显示占位说明）；演示场景可设 NEXT_PUBLIC_USE_MOCK_DATA=true 开启。
+ */
+export const USE_MOCK_FALLBACK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";

@@ -13,6 +13,7 @@ import { listRisks } from "@/services/risks";
 import { listTasks } from "@/services/tasks";
 import { listRuns } from "@/services/agent";
 import { isLoggedIn } from "@/services/auth";
+import { USE_MOCK_FALLBACK } from "@/lib/constants";
 import { MOCK_ACTIONS, MOCK_GOALS } from "@/mock/dashboard";
 import type {
   AgentRun,
@@ -62,6 +63,7 @@ function toRiskItem(risk: Risk): RiskItem {
     level: risk.level,
     title: risk.title,
     reason: risk.description || (risk.ruleCode ? `触发规则 ${risk.ruleCode}` : risk.riskType),
+    ruleCode: risk.ruleCode,
     relatedFactCount: null,
   };
 }
@@ -221,16 +223,28 @@ export default function DashboardData() {
 
       <section aria-label="目标进度">
         <h2 className="mb-3 text-base font-semibold text-content">目标进度</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {MOCK_GOALS.map((goal) => (
-            <GoalProgressCard key={goal.id} goal={goal} />
-          ))}
-        </div>
+        {USE_MOCK_FALLBACK ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {MOCK_GOALS.map((goal) => (
+              <GoalProgressCard key={goal.id} goal={goal} />
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-xl border border-secondary/10 bg-card p-4 text-sm text-muted">
+            目标进度为演示数据（契约暂无对应接口），设 NEXT_PUBLIC_USE_MOCK_DATA=true 开启
+          </p>
+        )}
       </section>
 
       <section aria-label="今日行动">
         <h2 className="mb-3 text-base font-semibold text-content">今日行动</h2>
-        <TodayActions actions={MOCK_ACTIONS} />
+        {USE_MOCK_FALLBACK ? (
+          <TodayActions actions={MOCK_ACTIONS} />
+        ) : (
+          <p className="rounded-xl border border-secondary/10 bg-card p-4 text-sm text-muted">
+            今日行动为演示数据（契约暂无对应接口），设 NEXT_PUBLIC_USE_MOCK_DATA=true 开启
+          </p>
+        )}
       </section>
     </>
   );
