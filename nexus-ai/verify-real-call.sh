@@ -15,6 +15,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/../nexus-backend"
 ENV_FILE="${1:-$SCRIPT_DIR/real-call.env}"
+# 输出路径可覆盖：部分环境（如 Windows 下 Maven fork 的 JVM）对 nexus-ai 目录无写权限时，
+# 设置 NEXUS_AI_DEMO_OUTPUT 指向可写目录，避免验收因落盘失败而中断。
+OUTPUT_FILE="${NEXUS_AI_DEMO_OUTPUT:-$SCRIPT_DIR/testdata/extraction-result.json}"
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   echo "用法: ./verify-real-call.sh [env文件]"
@@ -63,7 +66,7 @@ run_demo() {
   echo "---- $label ----"
   local out
   out=$(cd "$BACKEND_DIR" && timeout 180 mvn -q spring-boot:run \
-    -Dspring-boot.run.arguments="--nexus.ai.mode=real --nexus.ai.demo.enabled=true --nexus.ai.demo.input=$input" 2>&1) || true
+    -Dspring-boot.run.arguments="--nexus.ai.mode=real --nexus.ai.demo.enabled=true --nexus.ai.demo.input=$input --nexus.ai.demo.output=$OUTPUT_FILE" 2>&1) || true
   # 抽取 Demo 完成日志（Spring Boot 常驻服务被 timeout 终止属正常）
   echo "$out" | grep "抽取 Demo 完成" || { echo "$out" | tail -20; echo "[错误] $label 未输出完成日志" >&2; return 1; }
 }
@@ -79,5 +82,6 @@ echo "  前置：pom.xml 需已加入 org.apache.pdfbox:pdfbox 依赖，否则�
 run_demo "PDF 转图识别" "../nexus-ai/testdata/invoice.pdf"
 
 echo "==== 验收完成，核对输出 ===="
-echo "输出文件: $SCRIPT_DIR/testdata/extraction-result.json"
+echo "输出文件: $OUTPUT_FILE"
+echo "可执行 Schema 校验: python schema_check.py \"$OUTPUT_FILE\" --source-id <A 上传接口返回的 world_sources.id>"
 echo "检查项: provider=huawei-llm/huawei-ocr; entity/fact/event 均带 sourceId; 置信度与证据片段合理; PDF 页块页码正确"
