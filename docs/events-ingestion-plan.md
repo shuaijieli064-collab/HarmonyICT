@@ -76,7 +76,7 @@
 | 抽取 `event_type`（10） | 入库 `event_type`（6） | 理由 |
 | --- | --- | --- |
 | `purchase` | `asset` | 资产取得事件 |
-| `payment` | `asset` | 资产支出事件 |
+| `payment` | `contract` | 支付节点属合同履约（B 契约 f60bb4d 定稿口径） |
 | `subscription_start` | `contract` | 订阅合同生效 |
 | `subscription_renewal` | `contract` | 订阅合同续期 |
 | `subscription_expiry` | `contract` | 订阅合同终止 |
@@ -86,7 +86,7 @@
 | `exam` | `education` | 考核事件 |
 | `other` | `other` | 兜底 |
 
-> 此表按现有 6 值语义推定；B 的 `EVENTS-INGESTION-CONTRACT.md` 若已定稿不同映射，以其为准并回写本节。`warranty_expiry` 若 B 归入 `contract`，须同步调整本表与测试断言。
+> 2026-11-23 复核 B 提交 `f60bb4d` 的 `EVENTS-INGESTION-CONTRACT.md` 第 4.1 节：仅 `payment` 一处不同（原推定 `asset`，B 定稿 `contract`），已按 B 口径修正代码与本表；其余 9 项一致。`deadline` 按关联实体细化（B 4.2 建议）本轮未实现，统一落 `other`，留后续 PR。
 
 ### 3.5 时间归一规则
 
@@ -98,9 +98,9 @@
 
 ### 3.6 幂等
 
-状态机已挡住常规重抽：`ExtractionPipelineService.processAsync` 对 `status != pending` 的来源直接跳过。因此本轮采用**应用层查重，不加 DDL**：同一 `source_id` 下，若存在 `title` 与 `occurred_at` 均相同的事件则跳过写入并记日志。
+状态机已挡住常规重抽：`ExtractionPipelineService.processAsync` 对 `status != pending` 的来源直接跳过。因此本轮采用**应用层查重，不加 DDL**：判重键为 `(user_id, source_id, event_type, occurred_at, title)`，与 B 契约 `f60bb4d` 第 6 节一致；2026-11-23 复核后补入 `event_type`（同标题同时间但类型不同的两条事件不再互相误杀）。
 
-`event_id` 作为文档内临时键，用于批次内 `related_entity_refs` 解析与日志追踪，不作为数据库唯一键。若 B 契约要求严格按 `source_id + event_id` 幂等，须新增 `event_key VARCHAR(32)` 列与唯一索引（两处 DDL + `database-design.md` 同步），见第 7 节待拍板项 1。
+`event_id` 作为文档内临时键，用于批次内 `related_entity_refs` 解析与日志追踪，不作为数据库唯一键。严格唯一索引（含 `event_key` 列）仍留赛后，见第 7 节拍板记录。
 
 ---
 
@@ -154,8 +154,8 @@
 
 | # | 议题 | 拍板选项 | 结论 |
 | --- | --- | --- | --- |
-| 1 | 事件幂等存储 | ① | 应用层按 `source_id + title + occurred_at` 查重，无 DDL；严格幂等留赛后 |
-| 2 | `event_type` 映射 | ② | 先按本文档 3.4 表实现；B 契约文档 push 后复核，以其为准并回写本节与 3.4 表 |
+| 1 | 事件幂等存储 | ① | 应用层查重、无 DDL；2026-11-23 复核 B 契约后键扩为 `(user_id, source_id, event_type, occurred_at, title)`；严格唯一索引留赛后 |
+| 2 | `event_type` 映射 | ② | B 契约 `f60bb4d` 已 push 并复核：仅 `payment` 一处不同，已按其口径改为 `contract` 并回写 3.4 表 |
 | 3 | snake_case 迁移 | ① | Parser 双读：snake 优先 + camel 兜底；camel 兜底在端到端验收后移除 |
 | 4 | 无时间字段的事件 | ① | 跳过并记 `W-MISSING-FIELD`，不落 `Instant.now()` |
 | 5 | `evidence` / `confidence` 落库 | ① | `evidence.text_snippet` 写 `description`，`confidence` 仅作门槛；不加列 |
@@ -177,3 +177,27 @@
 | --- | --- | --- | --- |
 | v0.1-draft | 2026-11-23 | 首版：范围、现状、契约口径、改动清单、验收、待拍板项 | A |
 | v1.0 | 2026-11-23 | 五项拍板确认（①①②①①），进入实施 | A |
+| v1.1 | 2026-11-23 | B 契约 `f60bb4d` review 完成：`payment` 映射改 `contract`、幂等键补 `event_type`、范围外事项登记 | A |
+
+---
+
+## 10. B 契约 review 结论（`feature/ai-b@f60bb4d`，2026-11-23）
+
+对 `nexus-ai/EVENTS-INGESTION-CONTRACT.md` 第 7 节 review 清单逐项结论：
+
+| # | 契约事项 | 结论 | 落地情况 |
+| --- | --- | --- | --- |
+| 1 | `ExtractionResult` 增加 events / tasks | 部分接受 | `events` 已接入；`tasks` 按原拍板本轮不消费（DTO 未加 `ExtractedTask`）。B 第 8 节验收标准未要求任务落库 |
+| 2 | `event_type` 10→6 映射 | 已对齐 | 仅 `payment` 一处不同，已由 `asset` 改 `contract`；其余 9 项一致；`deadline` 按关联实体细化留后续 PR，本轮统一 `other` |
+| 3 | `entity_id` 为空时是否入库 + 兜底实体 | 暂不采纳兜底 | 事件照常入库、解析失败置 `null` 并记告警；不改风险引擎。B 端到端验收若发现冲突风险因空实体被丢弃，再另开 PR |
+| 4 | `occurred_at` 时区口径 | 一致 | `start_at > due_at > end_at`，无时区按 +08:00 归一 UTC |
+| 5 | `tasks.source_type` 扩展 `extracted` | 一致 | 两处 DDL 已补；本轮不写 tasks 表 |
+| 6 | 事件应用层幂等键 | 已对齐 | 补入 `event_type`，键为 `(user_id, source_id, event_type, occurred_at, title)` |
+| 7 | `confidence` / `evidence` 落库 | 一致 | `text_snippet` 写 `description`，`confidence` 仅作门槛，不加列 |
+
+**范围外事项（不在本 PR，留后续拍板）**：
+
+- `ExtractedTask` / `tasks` 列表：B 希望 DTO 一并扩展；本轮按原拍板不消费。若 B 端到端验收要求任务落库（如 `DEADLINE_1D` 的可达性），另开 PR 连 C 端 UI 一并评审。
+- 事件兜底实体：B 提示 `entity_id` 为 `null` 时风险侧会丢弃冲突风险；本轮不动风险引擎，以演示资料实际解析结果为准再定。
+- 命名风格：B 的 `ACCEPTANCE-RECORD.md` 第 3.3 节建议线上 wire format 为 camelCase，本方案拍板 snake_case，但 Parser 做了双读兼容（snake 优先 + camel 兜底），B 分支的 camelCase 输出可正常消费；real 验收后统一口径并移除兜底。
+- B 新增 `budget_limit` 谓词（Schema v0.2）：本 PR 未重复实现；两分支合并预演（`git merge-tree`）无文本冲突，合并结果中 `budget_limit` 与 events 逻辑均保留，合并顺序不影响功能完整性。

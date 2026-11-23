@@ -36,7 +36,8 @@ import java.util.Map;
  *
  * 状态机（契约 4.2，供 C 轮询）：pending → parsing → parsed / failed。
  * 幂等：已 parsing/parsed 的来源跳过重复触发；事实重抽由 P1-5 唯一键 + 服务层链式失效兜底；
- * 事件按 (user_id, source_id, title, occurred_at) 应用层查重（2026-11-23 拍板，不加 DDL）。
+ * 事件按 (user_id, source_id, event_type, occurred_at, title) 应用层查重
+ * （2026-11-23 与 B 契约 f60bb4d 第 6 节对齐，不加 DDL）。
  * 红线：user_id 由服务端注入，禁止取自抽取结果；抽取失败不抛出到调用方（异步吞异常记日志）。
  */
 @Component
@@ -195,10 +196,11 @@ public class ExtractionPipelineService {
             Long duplicated = eventMapper.selectCount(new LambdaQueryWrapper<WorldEvent>()
                     .eq(WorldEvent::getUserId, userId)
                     .eq(WorldEvent::getSourceId, sourceId)
+                    .eq(WorldEvent::getEventType, event.eventType())
                     .eq(WorldEvent::getTitle, event.title())
                     .eq(WorldEvent::getOccurredAt, occurredAt));
             if (duplicated != null && duplicated > 0) {
-                log.info("事件跳过：同源同标题同时间已存在 eventId={} title={}", event.eventId(), event.title());
+                log.info("事件跳过：同源同类型同标题同时间已存在 eventId={} title={}", event.eventId(), event.title());
                 return;
             }
 

@@ -356,4 +356,26 @@ class ExtractionOutputParserTest {
         assertEquals("contract", parsed.events().get(0).eventType());
         assertEquals("2026-11-14T16:00:00Z", parsed.events().get(0).startAt());
     }
+
+    @Test
+    void mapsPaymentEventToContractPerBContract() {
+        String json = """
+                {
+                  "entities": [],
+                  "facts": [],
+                  "events": [
+                    {
+                      "event_id": "event_1", "event_type": "payment", "title": "支付订阅费",
+                      "start_at": "2026-11-15T10:00:00+08:00", "confidence": 0.90,
+                      "evidence": { "text_snippet": "支付订阅费 39 元" }
+                    }
+                  ]
+                }
+                """;
+
+        ExtractionOutputParser.ParsedExtraction parsed = parser.parse(json, 0.50);
+
+        assertEquals(1, parsed.events().size());
+        assertEquals("contract", parsed.events().get(0).eventType());
+    }
 }

@@ -588,7 +588,7 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
 
 **events 入库细则（2026-11-23 拍板，A 侧实施）**：
 
-1. `event_type` 10→6 映射：`purchase`/`payment`→`asset`；`subscription_start`/`subscription_renewal`/`subscription_expiry`→`contract`；`warranty_expiry`→`asset`；`class`/`exam`→`education`；`deadline`/`other`→`other`。B 的 `EVENTS-INGESTION-CONTRACT.md` push 后须复核本表。
+1. `event_type` 10→6 映射（2026-11-23 已与 B 契约 `f60bb4d` 复核）：`purchase`→`asset`；`payment`/`subscription_start`/`subscription_renewal`/`subscription_expiry`→`contract`；`warranty_expiry`→`asset`；`class`/`exam`→`education`；`deadline`/`other`→`other`。`deadline` 按关联实体细化留后续 PR。
 2. `occurred_at` 按 `start_at` > `due_at` > `end_at` 取值，统一归一 UTC；三者全缺失则该条跳过并记 `W-MISSING-FIELD`，不写 `Instant.now()`。
 3. 幂等：应用层按 `(user_id, source_id, title, occurred_at)` 查重，不加 DDL；`event_id` 仅作文档内临时键。
 4. `evidence.text_snippet` 写 `world_events.description`（≤200 字），`confidence < 0.50` 丢弃且不落库（`world_events` 无该列）。

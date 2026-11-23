@@ -76,7 +76,7 @@ public class ExtractionOutputParser {
      */
     private static final Map<String, String> EVENT_TYPE_MAP = Map.ofEntries(
             Map.entry("purchase", "asset"),
-            Map.entry("payment", "asset"),
+            Map.entry("payment", "contract"),
             Map.entry("subscription_start", "contract"),
             Map.entry("subscription_renewal", "contract"),
             Map.entry("subscription_expiry", "contract"),
