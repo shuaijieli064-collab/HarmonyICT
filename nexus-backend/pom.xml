@@ -23,6 +23,9 @@
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <jjwt.version>0.12.6</jjwt.version>
         <pdfbox.version>2.0.31</pdfbox.version>
+        <!-- 覆盖 Boot 3.3.5 自带的 byte-buddy 1.14.x：JDK 25（class 版本 69）下 Mockito inline mock 报
+             "Could not modify all classes"，6 个测试失败；1.18.x 起支持 Java 25 -->
+        <byte-buddy.version>1.18.11</byte-buddy.version>
     </properties>
 
     <dependencies>
