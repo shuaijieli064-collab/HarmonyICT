@@ -10,11 +10,48 @@ AI 与智能引擎交付目录：测试资料集、抽取结果样例、联调�
 | `testdata/invoice.pdf` | 发票样例（PDF，真实验收用 OCR/PDF 转图链路） |
 | `testdata/subscription.txt` | 订阅确认样例（TXT，可直接抽取） |
 | `testdata/study-plan.png` | 学习计划样例（图片，真实验收用 OCR） |
+| `testdata/demo/` | **演示资料三份**（TXT/图片/PDF，覆盖期限·冲突·到期·预算四类风险，基准日 2026-11-23） |
+| `testdata/generate_demo_assets.py` | 生成演示 TXT + PDF（可指定基准日，日期按相对偏移计算） |
+| `testdata/GenerateDemoSchedule.java` | 生成演示日程图片（JDK 单文件运行） |
 | `testdata/generate_invoice_pdf.py` | 发票 PDF 生成脚本（Python 标准库） |
 | `testdata/GenerateStudyPlan.java` | 学习计划图片生成脚本（JDK 单文件运行） |
 | `testdata/extraction-result.json` | Demo 运行产物（不入库，可删除） |
+| `schema_check.py` | 抽取结果 Schema 合规校验（对照 `docs/extraction-schema.md` 第 3/4/9 节） |
+| `EVENTS-INGESTION-CONTRACT.md` | events / tasks 入库契约（待 A review，闭环日程冲突风险） |
+| `ACCEPTANCE-RECORD.md` | 验收记录与答辩证据索引 |
 | `P1-JOINT-DECISION.md` | P1 四项联调拍板数据（含 confidence/factStatus 落库 P0） |
 | `ORCHESTRATION-CONTRACT.md` | 抽取入库编排契约（OCR→抽取→落库链路 + PDF 转图说明） |
+
+## 演示资料（覆盖 4 类风险）
+
+`testdata/demo/` 下三份资料按基准日 **2026-11-23** 生成，日期为相对偏移（任务 +1 天、订阅 +2/+12 天、保修 +8 天），
+更换基准日可整体重生成，避免演示前日期过期：
+
+```
+cd nexus-ai/testdata
+python generate_demo_assets.py demo 2026-11-23
+java GenerateDemoSchedule.java demo 2026-11-23
+```
+
+| 文件 | 类型 | 预期风险 |
+| --- | --- | --- |
+| `budget-subscription.txt` | TXT | 预算超支 `BUDGET_OVERSPENT`、订阅到期 `SUBSCRIPTION_EXPIRY_*` |
+| `schedule-plan.png` | 图片 | 日程冲突 `SCHEDULE_CONFLICT_HOUR/DAY`、期限 `DEADLINE_1D` |
+| `warranty-invoice.pdf` | PDF | 保修到期 `WARRANTY_EXPIRY_30D` |
+
+> 日程冲突依赖 events 入库（见 `EVENTS-INGESTION-CONTRACT.md`）；预算依赖新增谓词 `budget_limit`
+> （`docs/extraction-schema.md` v0.2，待 A review）。
+
+## Schema 合规校验
+
+```
+python schema_check.py <抽取结果 JSON> --source-id <A 上传接口返回的雪花ID>
+```
+
+退出码 0 通过 / 1 有阻断级违规。脚本兼容 snake_case 与 camelCase，会单独提示命名风格差异。
+当前已知缺口（见 `ACCEPTANCE-RECORD.md` 第 3.3 节）：Prompt 与 mock 输出缺少
+`extraction_id / source / language / extracted_at` 四个顶层字段，且命名风格为 camelCase，
+与 `docs/extraction-schema.md` 第 9 节 JSON Schema 不一致，待与 A 对齐后统一。
 
 ## 运行抽取 Demo
 
@@ -73,7 +110,8 @@ cp real-call.env.template real-call.env   # 填入真实凭据（real-call.env �
 bash verify-real-call.sh                   # 依次验收 MaaS 文本抽取 + OCR 图片 + PDF 转图识别
 ```
 
-脚本会校验 6 项必填凭据，缺一即退出，不会用空凭据空跑；输出文件仍为 `testdata/extraction-result.json`。
+脚本会校验 6 项必填凭据，缺一即退出，不会用空凭据空跑；输出文件默认为 `testdata/extraction-result.json`，
+可通过 `NEXUS_AI_DEMO_OUTPUT` 覆盖（本机 Maven fork 的 JVM 对 `nexus-ai` 目录无写权限时使用）。
 OCR 支持图片（`study-plan.png`）与 PDF（`invoice.pdf`，逐页转图后识别，需 pom 引入 PDFBox）。
 凭据只走本地 `real-call.env` 或系统环境变量，**禁止写入仓库**。
 

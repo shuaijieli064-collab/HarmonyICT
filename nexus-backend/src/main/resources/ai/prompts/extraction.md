@@ -65,7 +65,7 @@
 name, purchased_at, price, currency, merchant_name, brand, model, serial_number, order_id,
 warranty_period, warranty_until, subscription_cycle, subscription_start_at, subscription_renewal_at,
 subscription_end_at, subscription_price, auto_renew, goal_target, goal_deadline, course_name,
-course_schedule, task_due_at, task_status, project_deadline, location
+course_schedule, task_due_at, task_status, project_deadline, location, budget_limit
 
 【硬性规则】
 1. 每条 fact / event / task 必须带 evidence.textSnippet，且片段必须逐字来自原文，禁止改写或编造。

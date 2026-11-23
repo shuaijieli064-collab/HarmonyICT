@@ -28,7 +28,8 @@ public class ExtractionOutputParser {
             "serial_number", "order_id", "warranty_period", "warranty_until", "subscription_cycle",
             "subscription_start_at", "subscription_renewal_at", "subscription_end_at",
             "subscription_price", "auto_renew", "goal_target", "goal_deadline", "course_name",
-            "course_schedule", "task_due_at", "task_status", "project_deadline", "location");
+            "course_schedule", "task_due_at", "task_status", "project_deadline", "location",
+            "budget_limit");
 
     private static final Set<String> DATE_PREDICATES = Set.of(
             "purchased_at", "warranty_until", "subscription_start_at", "subscription_renewal_at",

@@ -30,6 +30,9 @@ public class RuleBasedExtractor {
             "保修[^\\n\\r。]{0,30}?(\\d+|[一二三四五六七八九十两]+)\\s*(年|个月|月)");
     private static final Pattern SUBSCRIPTION = Pattern.compile("您已开通([^\\n\\r，。]+)");
     private static final Pattern RENEWAL = Pattern.compile("下次续费日期[：:]\\s*(20\\d{2}-\\d{2}-\\d{2})");
+    private static final Pattern BUDGET = Pattern.compile(
+            "(?:月度预算|每月预算|预算总额|预算)[：:]\\s*[¥￥]?\\s*([\\d,]+(?:\\.\\d{1,2})?)");
+    private static final Pattern PRICE = Pattern.compile("金额[：:]\\s*[¥￥]\\s*([\\d,]+(?:\\.\\d{1,2})?)");
     private static final Pattern GOAL = Pattern.compile("目标[：:]\\s*([^\\n\\r]+)");
     private static final Pattern TASK = Pattern.compile("(\\d{1,2})月(\\d{1,2})日前完成([^\\n\\r]+)");
 
@@ -104,26 +107,38 @@ public class RuleBasedExtractor {
             if (renewal.find()) {
                 String due = renewal.group(1);
                 addFact(facts, "fact_1", "ent_1", "subscription_renewal_at", due,
-                        "date", null, due, 0.92, "confirmed",renewal.group());
+                        "date", null, due, 0.92, "confirmed", renewal.group());
                 addEvent(events, "event_1", "subscription_renewal", "会员自动续费",
                         null, due + "T00:00:00+08:00", "ent_1", 0.90, renewal.group());
             }
             addFact(facts, "fact_2", "ent_1", "subscription_cycle",
                     sourceText.contains("按月") ? "monthly" : "yearly",
-                    "string", null, null, 0.90, "confirmed","订阅周期");
+                    "string", null, null, 0.90, "confirmed", "订阅周期");
             addFact(facts, "fact_3", "ent_1", "auto_renew",
                     sourceText.contains("自动续费") ? "true" : "false",
-                    "boolean", null, null, 0.90, "confirmed","自动续费");
+                    "boolean", null, null, 0.90, "confirmed", "自动续费");
+            Matcher price = PRICE.matcher(sourceText);
+            if (price.find()) {
+                String value = price.group(1).replace(",", "");
+                addFact(facts, "fact_4", "ent_1", "subscription_price", value,
+                        "number", "CNY", value, 0.92, "confirmed", price.group());
+            }
+            Matcher budget = BUDGET.matcher(sourceText);
+            if (budget.find()) {
+                String value = budget.group(1).replace(",", "");
+                addFact(facts, "fact_5", "ent_1", "budget_limit", value,
+                        "number", "CNY", value, 0.90, "confirmed", budget.group());
+            }
         } else {
             Matcher goal = GOAL.matcher(sourceText);
             if (goal.find()) {
                 entity.put("name", goal.group(1).trim());
                 addFact(facts, "fact_1", "ent_1", "goal_target", goal.group(1).trim(),
-                        "string", null, null, 0.88, "confirmed",goal.group());
+                        "string", null, null, 0.88, "confirmed", goal.group());
             }
             if (firstDate != null) {
                 addFact(facts, "fact_2", "ent_1", "goal_deadline", firstDate,
-                        "date", null, firstDate, 0.85, "confirmed",firstDate);
+                        "date", null, firstDate, 0.85, "confirmed", firstDate);
             }
             Matcher task = TASK.matcher(sourceText);
             if (task.find()) {
@@ -136,7 +151,7 @@ public class RuleBasedExtractor {
                 entities.add(taskEntity);
                 String due = firstDate == null ? null : firstDate + "T23:59:00+08:00";
                 addFact(facts, "fact_3", "ent_2", "task_due_at", due,
-                        "datetime", null, due, 0.86, "confirmed",task.group());
+                        "datetime", null, due, 0.86, "confirmed", task.group());
                 Map<String, Object> taskNode = new LinkedHashMap<>();
                 taskNode.put("taskId", "task_1");
                 taskNode.put("title", task.group(3).trim());

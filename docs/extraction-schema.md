@@ -1,6 +1,7 @@
 # NEXUS · 信息抽取 Schema（extraction-schema）
 
-> 主笔：成员 B　|　Review：成员 A　|　版本：v0.1　|　更新日期：2026-11-21
+> 主笔：成员 B　|　Review：成员 A　|　版本：v0.2　|　更新日期：2026-11-23
+> v0.2 变更：新增受控谓词 `budget_limit`（预算约束风险的数据来源，见 5.2）；其余不变，待 A review。
 > 作用：定义「文档 / 图片 / 文本 → 结构化事实」的输出契约，是 AI 抽取层、后端入库层、前端展示层三方共用的数据边界。
 > 依赖：`docs/NEXUS-立项与三人推进计划.md`、`docs/04-代码规范.md`。`docs/database-design.md` 尚未产出，本文按立项文档中的 9 张核心表字段设计；A 定稿后如有差异，以本文第 12 节待确认项对齐后升版本。
 
@@ -234,6 +235,7 @@ ID 约定（本 Schema 只产出**文档内临时 ID**，最终主键由数据�
 | `task_status` | task | string(enum) | `pending` / `doing` / `done` | 任务创建日 | `null` |
 | `project_deadline` | project | date | `YYYY-MM-DD` | 项目开始日 | 截止日 |
 | `location` | asset / device | string | — | 文档日期或空 | `null` |
+| `budget_limit` | person / account | number | `unit=CNY`，**月度**预算总额 | 文档日期或空 | `null` |
 
 **规则**：
 
@@ -241,6 +243,7 @@ ID 约定（本 Schema 只产出**文档内临时 ID**，最终主键由数据�
 2. `predicate=warranty_until` 与 `warranty_period` 二选一优先：原文给出截止日则用 `warranty_until`；只给「保修 X 年」则用 `warranty_period`，由入库层换算 `valid_until`。
 3. 订阅类事实必须至少包含 `subscription_renewal_at` 或 `subscription_end_at` 之一，否则 `W-INCOMPLETE-SUBSCRIPTION`。
 4. 金额必须拆成 `price`（number）+ `currency`（string）两条事实，禁止把「¥5999」塞进单个字符串。
+5. `budget_limit` 只抽取原文给出的**月度预算总额**；「是否超支」由规则引擎按订阅价格折算判断，模型不得输出预算结论。
 
 ### 5.3 `event_type`
 
@@ -454,7 +457,7 @@ normalization_factor 日期/金额/单位均可归一 = 1.00；部分归一 = 0.
             "subscription_cycle", "subscription_start_at", "subscription_renewal_at",
             "subscription_end_at", "subscription_price", "auto_renew",
             "goal_target", "goal_deadline", "course_name", "course_schedule",
-            "task_due_at", "task_status", "project_deadline", "location"
+            "task_due_at", "task_status", "project_deadline", "location", "budget_limit"
           ]
         },
         "object_value": { "type": ["string", "number", "boolean"] },
