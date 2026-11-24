@@ -25,8 +25,14 @@ public class AiProperties {
     }
 
     public static class Maas {
-        /** 只到域名，代码追加 /v1/chat/completions */
+        /**
+         * 只到域名（可含路径前缀），代码追加 completionPath。
+         * 华为云中国站新旧两代 MaaS 的 path 不同（/v1 vs /v2），必须分开配置，
+         * 否则把新域名填进 baseUrl 仍会请求 /v1 而 404（见 cloud-deployment-plan 3.2）。
+         */
         private String baseUrl = "https://maas-api.cn-southwest-2.myhuaweicloud.com";
+        /** OpenAI 兼容补完路径；默认 /v1 保持旧行为，新版 MaaS 改为 /v2/chat/completions */
+        private String completionPath = "/v1/chat/completions";
         private String apiKey = "";
         private String model = "";
         private double temperature = 0.1;
@@ -40,6 +46,14 @@ public class AiProperties {
 
         public void setBaseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
+        }
+
+        public String getCompletionPath() {
+            return completionPath;
+        }
+
+        public void setCompletionPath(String completionPath) {
+            this.completionPath = completionPath;
         }
 
         public String getApiKey() {

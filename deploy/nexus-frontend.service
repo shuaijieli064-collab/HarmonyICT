@@ -1,0 +1,21 @@
+[Unit]
+Description=NEXUS Frontend (Next.js)
+After=network-online.target nexus-backend.service
+Wants=nexus-backend.service
+
+[Service]
+Type=simple
+User=nexus
+Group=nexus
+WorkingDirectory=/opt/nexus/nexus-frontend
+# NEXT_PUBLIC_API_BASE_URL 在 next build 时已注入，运行时仅需端口；
+# 如运行期需要覆盖，可在 /etc/nexus/nexus-frontend.env 中追加 EnvironmentFile
+EnvironmentFile=-/etc/nexus/nexus-frontend.env
+ExecStart=/usr/bin/npm run start -- -p 3000
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

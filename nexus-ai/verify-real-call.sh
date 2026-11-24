@@ -65,6 +65,8 @@ run_demo() {
   local label="$1" input="$2"
   echo "---- $label ----"
   local out
+  # MaaS baseUrl/completionPath 由 env 文件导出后走 Spring relaxed binding 自动注入，
+  # 无需在启动参数里重复指定；切勿在命令行回显 API Key。
   out=$(cd "$BACKEND_DIR" && timeout 180 mvn -q spring-boot:run \
     -Dspring-boot.run.arguments="--nexus.ai.mode=real --nexus.ai.demo.enabled=true --nexus.ai.demo.input=$input --nexus.ai.demo.output=$OUTPUT_FILE" 2>&1) || true
   # 抽取 Demo 完成日志（Spring Boot 常驻服务被 timeout 终止属正常）

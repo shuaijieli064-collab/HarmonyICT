@@ -1,0 +1,21 @@
+[Unit]
+Description=NEXUS Backend (Spring Boot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nexus
+Group=nexus
+WorkingDirectory=/opt/nexus
+# 凭据只从 /etc/nexus/nexus.env 读取（权限 600，不入库），prod profile 显式指定
+EnvironmentFile=/etc/nexus/nexus.env
+ExecStart=/usr/bin/java -jar /opt/nexus/nexus-backend.jar --spring.profiles.active=prod
+Restart=on-failure
+RestartSec=5
+# 日志由 journald 收集：journalctl -u nexus-backend -f
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
