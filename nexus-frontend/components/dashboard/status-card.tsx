@@ -12,8 +12,9 @@ function CountUpText({ value }: { value: number }) {
   const mv = useMotionValue(0);
 
   useEffect(() => {
+    // 时长自适应：小数字（<10）滚动太快无感，缩短到 0.4s 避免拖沓
     const controls = animate(mv, value, {
-      duration: 0.8,
+      duration: value < 10 ? 0.4 : 0.8,
       ease: [0.16, 1, 0.3, 1],
       onUpdate: (latest) => {
         if (ref.current) {
@@ -29,14 +30,14 @@ function CountUpText({ value }: { value: number }) {
 
 const MemoCountUp = memo(CountUpText);
 
-/** 驾驶舱状态指标卡（玻璃面 + 数字滚动动效） */
+/** 驾驶舱状态指标卡：L1 强调卡（elevated 玻璃 + 内高光）+ display 级数字滚动 */
 function StatusCardInner({ metric }: { metric: StatusMetric }) {
   const numeric = Number(metric.value);
   const isNumeric = Number.isFinite(numeric) && metric.value.trim() !== "";
   return (
-    <div className="glass-card shimmer rounded-xl p-4">
+    <div className="card-elevated shimmer rounded-xl p-4">
       <p className="text-sm text-secondary">{metric.label}</p>
-      <p className="mt-1 text-3xl font-bold tabular-nums text-content">
+      <p className="mt-1 text-[32px] font-bold leading-tight tabular-nums text-content">
         {isNumeric ? <MemoCountUp value={numeric} /> : metric.value}
       </p>
       <p className="mt-1 text-xs text-muted">{metric.hint}</p>

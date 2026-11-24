@@ -24,16 +24,16 @@
   --glass-blur: 16px;
   --glass-blur-strong: 24px;
 
-  /* 文字 */
-
+  /* 文字（muted 提亮：玻璃面上对比度 3.2→4.6:1，达 WCAG AA） */
   --text-primary: #ededef;
   --text-secondary: #a1a1aa;
-  --text-muted: #6b6f76;
+  --text-muted: #8b8f98;
   --text-inverse: #0a0a0c;
 
-  /* 主色与强调 */
+  /* 主色与强调（hover 色相推进：accent-hover 已有，soft 为 12% 透明面） */
   --accent: #6366f1;
   --accent-hover: #7c7ff5;
+  --accent-soft: rgba(99, 102, 241, 0.12);
   --accent-glow: rgba(99, 102, 241, 0.35);
   --accent-secondary: #a855f7;
 
@@ -67,7 +67,7 @@
 
   --text-primary: #18181b;
   --text-secondary: #52525b;
-  --text-muted: #a1a1aa;
+  --text-muted: #71717a;
   --text-inverse: #ffffff;
 
   /* 强调与语义色：浅色背景需更深的变体保证对比度（dark 原值在白磨砂上偏淡） */
@@ -196,6 +196,35 @@ body {
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
 }
 
+/* ── 4.6 卡片三层体系（层次感：强调 > 语义 > 普通；列表项一律 flat 避免 blur 超限）── */
+
+/* L1 强调卡：指标/关键数据——更实底 + 内高光 + 投影 */
+.card-elevated {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-glass);
+  position: relative;
+}
+.card-elevated::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  pointer-events: none;
+}
+
+/* L3 普通卡：列表项/时间线——无 backdrop-filter（性能红线：同屏 blur ≤ 8） */
+.card-flat {
+  background: var(--glass-bg);
+  border: 1px solid var(--border-subtle);
+  transition: background 180ms ease-out, border-color 180ms ease-out;
+}
+.card-flat:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--border-glass-hover);
+}
+
 /* ── 5. Shimmer 微光扫过（hover 触发，克制使用）────────── */
 
 @keyframes shimmer-sweep {
@@ -219,9 +248,9 @@ body {
   background: linear-gradient(
     115deg,
     transparent 30%,
-    rgba(255, 255, 255, 0.06) 48%,
-    rgba(255, 255, 255, 0.10) 50%,
-    rgba(255, 255, 255, 0.06) 52%,
+    rgba(255, 255, 255, 0.10) 48%,
+    rgba(255, 255, 255, 0.16) 50%,
+    rgba(255, 255, 255, 0.10) 52%,
     transparent 70%
   );
   background-size: 200% 100%;

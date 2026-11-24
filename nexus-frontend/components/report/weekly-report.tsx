@@ -20,10 +20,10 @@ const PERIODS = [7, 14, 30] as const;
 
 function MetricCell({ label, value, hint }: { label: string; value: string | number; hint: string }) {
   return (
-    <div className="rounded-xl border border-secondary/10 bg-card p-4">
-      <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-content">{value}</p>
-      <p className="mt-1 text-xs text-secondary">{hint}</p>
+    <div className="card-elevated rounded-xl p-4">
+      <p className="text-xs text-secondary">{label}</p>
+      <p className="mt-1 text-2xl font-bold tabular-nums text-content">{value}</p>
+      <p className="mt-1 text-xs text-muted">{hint}</p>
     </div>
   );
 }
@@ -63,7 +63,7 @@ export default function WeeklyReportPanel() {
     if (state.phase === "loading") {
       return (
         <section aria-label="报告加载中" className="space-y-6">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
             {Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="skeleton h-24 rounded-xl" />
             ))}
@@ -107,7 +107,7 @@ export default function WeeklyReportPanel() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <MetricCell label="新增事实" value={report.newFactCount} hint="AI 抽取沉淀" />
         <MetricCell label="新增事件" value={report.newEventCount} hint="时间线动态" />
         <MetricCell label="新增风险" value={report.newRiskCount} hint="规则引擎发现" />
