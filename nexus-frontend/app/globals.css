@@ -235,7 +235,90 @@ body {
   animation: shimmer-sweep 1.1s ease-out;
 }
 
-/* ── 6. 降级与可访问性 ──────────────────────────────────── */
+/* ── 6. 手感层：按压反馈 / 悬浮位移 / 骨架屏 / 滚动条 / 焦点环 ── */
+
+/* 按钮按压：轻缩放模拟物理按压（transform 合成层，不触发重排） */
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+button {
+  transition-property: transform, background, border-color, box-shadow, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+
+/* 玻璃卡悬浮位移：叠在既有 hover 提亮之上（轻微上浮） */
+.glass-card,
+.bg-card.rounded-xl {
+  will-change: transform;
+}
+.glass-card:hover {
+  transform: translateY(-2px);
+}
+
+/* 骨架屏：复用 shimmer 扫光语言，无限循环（加载态专用） */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--glass-bg-strong);
+  border-radius: 8px;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.08) 48%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.08) 52%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.4s ease-out infinite;
+  pointer-events: none;
+}
+
+/* 深色玻璃滚动条 */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-glass-hover);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* 键盘焦点环：玻璃语言内的主色环（输入框已有专属光环，此处覆盖其余可交互元素） */
+:where(a, button, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 8px;
+}
+
+/* 周报趋势条形生长动画（transform 合成层；reduced-motion 由下方统一停用） */
+@keyframes bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.bar-grow {
+  transform-origin: bottom;
+  animation: bar-grow 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* ── 7. 降级与可访问性 ──────────────────────────────────── */
 
 /* 不支持 backdrop-filter 的浏览器：加深底色保证可读性 */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -246,13 +329,18 @@ body {
   }
 }
 
-/* 尊重减弱动态偏好：shimmer 与扫光停用 */
+/* 尊重减弱动态偏好：shimmer/骨架屏扫光与卡片动效停用 */
 @media (prefers-reduced-motion: reduce) {
-  .shimmer::after {
+  .shimmer::after,
+  .skeleton::after,
+  .bar-grow {
     display: none;
+    animation: none;
   }
   .glass-card,
-  .glass-card:hover {
+  .glass-card:hover,
+  button:not(:disabled):active {
     transition: none;
+    transform: none;
   }
 }

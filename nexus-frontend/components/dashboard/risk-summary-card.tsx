@@ -1,21 +1,31 @@
 "use client";
 
 import { RISK_LEVEL_MAP } from "@/lib/constants";
+import { riskLevelIconOf } from "@/lib/icons";
 import type { RiskItem } from "@/types";
 
-/** 风险摘要卡：等级徽章 + 触发规则徽章 + 触发原因 + 关联事实数 */
+/** 风险摘要卡：等级徽章（带语义图标）+ 触发规则徽章 + 触发原因 + 关联事实数 */
 export default function RiskSummaryCard({ risk }: { risk: RiskItem }) {
   const level = RISK_LEVEL_MAP[risk.level];
+  const LevelIcon = riskLevelIconOf(risk.level);
   return (
-    <div className="rounded-xl border border-secondary/10 bg-card p-4">
+    <div className="glass-card shimmer rounded-xl p-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-sm font-semibold text-content">{risk.title}</p>
-        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs ${level.bg} ${level.text}`}>
+        <p className="flex min-w-0 items-center gap-2 text-sm font-semibold text-content">
+          <LevelIcon
+            size={15}
+            strokeWidth={2}
+            className={`shrink-0 ${level.text}`}
+            aria-hidden="true"
+          />
+          <span className="truncate">{risk.title}</span>
+        </p>
+        <span className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs ${level.bg} ${level.text}`}>
           {level.label}
         </span>
       </div>
       {risk.ruleCode && (
-        <span className="mt-2 inline-block rounded-full bg-accent/10 px-2.5 py-0.5 text-xs text-primary">
+        <span className="mt-2 inline-block rounded-full bg-accent/10 px-2.5 py-0.5 font-mono text-xs text-primary">
           规则 {risk.ruleCode}
         </span>
       )}

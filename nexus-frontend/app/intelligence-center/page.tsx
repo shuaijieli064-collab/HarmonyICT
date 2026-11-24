@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Radar } from "lucide-react";
 import IntelPanel from "@/components/intel/intel-panel";
 
 export const metadata: Metadata = { title: "情报中心 · NEXUS" };
@@ -7,9 +8,12 @@ export const metadata: Metadata = { title: "情报中心 · NEXUS" };
 export default function IntelligenceCenterPage() {
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-bold text-content">情报中心</h1>
-        <p className="mt-1 text-sm text-secondary">风险、事件与 Agent 动作的统一情报流</p>
+      <header className="flex items-center gap-2.5">
+        <Radar size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
+        <div>
+          <h1 className="text-xl font-bold text-content">情报中心</h1>
+          <p className="mt-1 text-sm text-secondary">风险、事件与 Agent 动作的统一情报流</p>
+        </div>
       </header>
       <IntelPanel />
     </div>

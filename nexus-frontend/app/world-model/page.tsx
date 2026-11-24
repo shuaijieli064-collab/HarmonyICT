@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Network } from "lucide-react";
 import WorldPanel from "@/components/world/world-panel";
 import EntityGraph from "@/components/world/entity-graph";
 import ExportButton from "@/components/export/export-button";
@@ -12,9 +13,12 @@ export default function WorldModelPage() {
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-content">世界模型</h1>
-          <p className="mt-1 text-sm text-secondary">你的个人世界：实体、事实、事件与来源</p>
+        <div className="flex items-center gap-2.5">
+          <Network size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
+          <div>
+            <h1 className="text-xl font-bold text-content">世界模型</h1>
+            <p className="mt-1 text-sm text-secondary">你的个人世界：实体、事实、事件与来源</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton dataset="facts" label="导出事实 CSV" />

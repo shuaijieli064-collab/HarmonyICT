@@ -60,21 +60,29 @@ export default function WeeklyReportPanel() {
   }, [days]);
 
   if (state.phase !== "ready") {
+    if (state.phase === "loading") {
+      return (
+        <section aria-label="报告加载中" className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="skeleton h-24 rounded-xl" />
+            ))}
+          </div>
+          <div className="skeleton h-40 rounded-xl" />
+        </section>
+      );
+    }
     return (
       <section
         aria-label="周期报告"
         className="flex min-h-40 items-center justify-center rounded-xl border border-secondary/10 bg-card"
       >
-        {state.phase === "loading" ? (
-          <p className="text-sm text-muted">正在生成报告…</p>
-        ) : (
-          <div className="space-y-3 text-center">
-            <p className="text-sm text-warning">{state.message}</p>
-            <Link href="/login" className="inline-block text-sm text-primary hover:underline">
-              前往登录 / 注册 →
-            </Link>
-          </div>
-        )}
+        <div className="space-y-3 text-center">
+          <p className="text-sm text-warning">{state.message}</p>
+          <Link href="/login" className="inline-block text-sm text-primary hover:underline">
+            前往登录 / 注册 →
+          </Link>
+        </div>
       </section>
     );
   }
@@ -111,12 +119,16 @@ export default function WeeklyReportPanel() {
       <div className="rounded-xl border border-secondary/10 bg-card p-4">
         <h3 className="mb-3 text-sm font-semibold text-content">每日世界模型活跃度（事实 / 事件）</h3>
         <div className="flex h-32 items-end gap-1.5">
-          {report.dailyTrend.map((trend) => {
+          {report.dailyTrend.map((trend, index) => {
             const total = trend.facts + trend.events;
             return (
-              <div key={trend.day} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+              <div
+                key={trend.day}
+                className="flex min-w-0 flex-1 flex-col items-center gap-1"
+                style={{ animationDelay: `${index * 40}ms` }}
+              >
                 <div
-                  className="w-full rounded-t bg-primary/60"
+                  className="bar-grow w-full rounded-t bg-primary/60"
                   style={{ height: `${(total / maxDaily) * 100}%` }}
                   title={`${trend.day}：事实 ${trend.facts} · 事件 ${trend.events}`}
                 />

@@ -144,21 +144,33 @@ export default function DashboardData() {
   }, []);
 
   if (state.phase !== "ready") {
+    if (state.phase === "loading") {
+      // 骨架屏：形状匹配布局（指标卡 + 双面板），替代文字加载
+      return (
+        <section aria-label="驾驶舱加载中" className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="skeleton h-24 rounded-xl" />
+            ))}
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="skeleton h-56 rounded-xl" />
+            <div className="skeleton h-56 rounded-xl" />
+          </div>
+        </section>
+      );
+    }
     return (
       <section
         aria-label="驾驶舱数据"
         className="flex min-h-40 items-center justify-center rounded-xl border border-secondary/10 bg-card"
       >
-        {state.phase === "loading" ? (
-          <p className="text-sm text-muted">正在加载真实接口数据…</p>
-        ) : (
-          <div className="space-y-3 text-center">
-            <p className="text-sm text-warning">{state.message}</p>
-            <Link href="/login" className="inline-block text-sm text-primary hover:underline">
-              前往登录 / 注册 →
-            </Link>
-          </div>
-        )}
+        <div className="space-y-3 text-center">
+          <p className="text-sm text-warning">{state.message}</p>
+          <Link href="/login" className="inline-block text-sm text-primary hover:underline">
+            前往登录 / 注册 →
+          </Link>
+        </div>
       </section>
     );
   }
