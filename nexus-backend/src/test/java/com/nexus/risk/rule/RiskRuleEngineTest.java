@@ -71,7 +71,7 @@ class RiskRuleEngineTest {
     void certExpiryRiskWritesEvidenceFactLink() {
         when(factMapper.selectList(any())).thenReturn(List.of(certFactExpiringInDays(10)));
 
-        engine.scan();
+        engine.scanNow();
 
         ArgumentCaptor<WorldRisk> riskCaptor = ArgumentCaptor.forClass(WorldRisk.class);
         verify(riskMapper).insert(riskCaptor.capture());
@@ -89,7 +89,7 @@ class RiskRuleEngineTest {
         when(factMapper.selectList(any())).thenReturn(List.of(certFactExpiringInDays(10)));
         when(riskMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
 
-        engine.scan();
+        engine.scanNow();
 
         verify(riskMapper, org.mockito.Mockito.never()).insert(any(WorldRisk.class));
         verify(riskFactMapper, org.mockito.Mockito.never()).insert(any(WorldRiskFact.class));

@@ -10,6 +10,8 @@ import com.nexus.risk.dto.RiskDetailResponse;
 import com.nexus.risk.dto.RiskResponse;
 import com.nexus.risk.entity.WorldRisk;
 import com.nexus.risk.mapper.WorldRiskMapper;
+import com.nexus.risk.pipeline.RiskAnalysisPipelineService;
+import com.nexus.risk.rule.RiskRuleEngine;
 import com.nexus.risk.service.RiskService;
 import com.nexus.world.dto.FactResponse;
 import com.nexus.world.entity.WorldFact;
@@ -28,10 +30,15 @@ public class RiskServiceImpl implements RiskService {
 
     private final WorldRiskMapper riskMapper;
     private final WorldFactMapper factMapper;
+    private final RiskRuleEngine ruleEngine;
+    private final RiskAnalysisPipelineService analysisPipeline;
 
-    public RiskServiceImpl(WorldRiskMapper riskMapper, WorldFactMapper factMapper) {
+    public RiskServiceImpl(WorldRiskMapper riskMapper, WorldFactMapper factMapper,
+                           RiskRuleEngine ruleEngine, RiskAnalysisPipelineService analysisPipeline) {
         this.riskMapper = riskMapper;
         this.factMapper = factMapper;
+        this.ruleEngine = ruleEngine;
+        this.analysisPipeline = analysisPipeline;
     }
 
     @Override
@@ -97,4 +104,9 @@ public class RiskServiceImpl implements RiskService {
         }
         return risk;
     }
-}
+
+    @Override
+    public int scanNow() {
+        // 同步触发两个既有引擎的扫描逻辑（红线不变：风险只由规则产生）
+        return ruleEngine.scanNow() + analysisPipeline.scanNow();
+    }}

@@ -47,29 +47,33 @@ public class RiskRuleEngine {
     }
 
     /**
-     * 定时扫描全量 active 事实。
-     * 为什么跨用户扫描：规则引擎是系统级后台任务，风险仍按各自 user_id 落库（隔离红线不受影响）。
+     * 定时扫描全量 active 事实（后台任务不允许中断调度，异常吞掉记日志）。
      */
     @Scheduled(fixedDelay = 60_000, initialDelay = 15_000)
-    public void scan() {
+    public void scheduledScan() {
         try {
-            List<WorldFact> activeFacts = factMapper.selectList(new LambdaQueryWrapper<WorldFact>()
-                    .eq(WorldFact::getStatus, "active"));
-            if (activeFacts.isEmpty()) {
-                return;
-            }
-            int created = 0;
-            for (WorldFact fact : activeFacts) {
-                created += certExpiryRule(fact);
-                created += stalenessRule(fact);
-            }
-            if (created > 0) {
-                log.info("规则引擎本轮产生 {} 条风险", created);
-            }
+            scanNow();
         } catch (Exception e) {
-            // 后台任务不允许中断调度，吞异常记日志
             log.error("规则引擎扫描异常", e);
         }
+    }
+
+    /** 手动/同步触发扫描（演示与联调用），返回本轮新增风险数 */
+    public int scanNow() {
+        List<WorldFact> activeFacts = factMapper.selectList(new LambdaQueryWrapper<WorldFact>()
+                .eq(WorldFact::getStatus, "active"));
+        if (activeFacts.isEmpty()) {
+            return 0;
+        }
+        int created = 0;
+        for (WorldFact fact : activeFacts) {
+            created += certExpiryRule(fact);
+            created += stalenessRule(fact);
+        }
+        if (created > 0) {
+            log.info("规则引擎本轮产生 {} 条风险", created);
+        }
+        return created;
     }
 
     /** 规则 1：证书 30 天内到期 */

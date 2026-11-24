@@ -58,24 +58,30 @@ public class RiskAnalysisPipelineService {
 
     /** 系统级定时扫描：与 RiskRuleEngine 同频，按用户分组构建快照后交 Provider 分析 */
     @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
-    public void scan() {
+    public void scheduledScan() {
         try {
-            List<WorldFact> activeFacts = factMapper.selectList(new LambdaQueryWrapper<WorldFact>()
-                    .eq(WorldFact::getStatus, "active"));
-            if (activeFacts.isEmpty()) {
-                return;
-            }
-            int created = 0;
-            for (Long userId : activeFacts.stream().map(WorldFact::getUserId).distinct().toList()) {
-                created += analyzeUser(userId, activeFacts);
-            }
-            if (created > 0) {
-                log.info("风险分析管线本轮产生 {} 条风险", created);
-            }
+            scanNow();
         } catch (Exception e) {
             // 后台任务不允许中断调度，吞异常记日志
             log.error("风险分析管线扫描异常", e);
         }
+    }
+
+    /** 手动/同步触发扫描（演示与联调用），返回本轮新增风险数 */
+    public int scanNow() {
+        List<WorldFact> activeFacts = factMapper.selectList(new LambdaQueryWrapper<WorldFact>()
+                .eq(WorldFact::getStatus, "active"));
+        if (activeFacts.isEmpty()) {
+            return 0;
+        }
+        int created = 0;
+        for (Long userId : activeFacts.stream().map(WorldFact::getUserId).distinct().toList()) {
+            created += analyzeUser(userId, activeFacts);
+        }
+        if (created > 0) {
+            log.info("风险分析管线本轮产生 {} 条风险", created);
+        }
+        return created;
     }
 
     private int analyzeUser(Long userId, List<WorldFact> allActiveFacts) {

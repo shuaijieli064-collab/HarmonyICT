@@ -110,7 +110,7 @@ class RiskAnalysisPipelineServiceTest {
                         "ThinkPad X1：保修 10 天内到期", "到期事实「warranty_until」=2026-12-01",
                         100L, List.of(300L)))));
 
-        pipeline.scan();
+        pipeline.scanNow();
 
         // 快照注入校验：实体 join 出 subjectName/subjectType，user_id 不来自抽取结果
         ArgumentCaptor<RiskAnalysisRequest> requestCaptor = ArgumentCaptor.forClass(RiskAnalysisRequest.class);
@@ -139,7 +139,7 @@ class RiskAnalysisPipelineServiceTest {
                 List.of(new RiskAnalysisRequest.DetectedRisk("other", "medium", "SCHEDULE_CONFLICT",
                         "日程冲突", "同日两项安排", null, List.of()))));
 
-        pipeline.scan();
+        pipeline.scanNow();
 
         verify(riskMapper, never()).insert(any(WorldRisk.class));
         verify(riskFactMapper, never()).insert(any(WorldRiskFact.class));
@@ -153,7 +153,7 @@ class RiskAnalysisPipelineServiceTest {
                 List.of(new RiskAnalysisRequest.DetectedRisk("cert_expiry", "high", "ASSET_EXPIRY_30D",
                         "ThinkPad X1：保修 10 天内到期", "到期事实", 100L, List.of(300L)))));
 
-        pipeline.scan();
+        pipeline.scanNow();
 
         verify(riskMapper, never()).insert(any(WorldRisk.class));
         verify(riskFactMapper, never()).insert(any(WorldRiskFact.class));
@@ -163,7 +163,7 @@ class RiskAnalysisPipelineServiceTest {
     void scanSkipsEmptyFacts() {
         when(factMapper.selectList(any())).thenReturn(List.of());
 
-        pipeline.scan();
+        pipeline.scanNow();
 
         verify(riskAnalysisProvider, never()).analyze(any());
         verify(eventMapper, never()).selectList(any());
