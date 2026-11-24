@@ -9,8 +9,11 @@ import com.nexus.common.exception.BizException;
 import com.nexus.task.dto.TaskCreateRequest;
 import com.nexus.task.dto.TaskResponse;
 import com.nexus.task.service.TaskService;
+import com.nexus.world.dto.EventCreateRequest;
+import com.nexus.world.dto.EventResponse;
 import com.nexus.world.dto.FactResponse;
 import com.nexus.world.dto.FactUpdateRequest;
+import com.nexus.world.service.WorldEventService;
 import com.nexus.world.service.WorldFactService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,13 +39,16 @@ public class AgentActionExecutor {
     private final AgentActionLogMapper logMapper;
     private final TaskService taskService;
     private final WorldFactService factService;
+    private final WorldEventService eventService;
     private final ObjectMapper objectMapper;
 
     public AgentActionExecutor(AgentActionLogMapper logMapper, TaskService taskService,
-                               WorldFactService factService, ObjectMapper objectMapper) {
+                               WorldFactService factService, WorldEventService eventService,
+                               ObjectMapper objectMapper) {
         this.logMapper = logMapper;
         this.taskService = taskService;
         this.factService = factService;
+        this.eventService = eventService;
         this.objectMapper = objectMapper;
     }
 
@@ -92,9 +98,36 @@ public class AgentActionExecutor {
                 markResult(actionLog, "success");
                 log.info("Agent 动作 update_fact 执行成功: runId={}, newFactId={}", actionLog.getRunId(), fact.id());
             }
+            case "create_event" -> {
+                EventResponse event = eventService.create(userId, toEventRequest(payload));
+                actionLog.setTargetType("event");
+                actionLog.setTargetId(event.id());
+                markResult(actionLog, "success");
+                log.info("Agent 动作 create_event 执行成功: runId={}, eventId={}",
+                        actionLog.getRunId(), event.id());
+            }
             default -> // 未登记类型不臆造执行语义，保持 pending 等待登记
                 log.debug("未登记的 Agent 动作类型，保持 pending: {}", actionLog.getActionType());
         }
+    }
+
+    private EventCreateRequest toEventRequest(Map<String, Object> payload) {
+        Instant occurredAt = null;
+        if (payload.get("occurredAt") != null) {
+            // 复用规则层的容错日期解析（兼容 yyyy-MM-dd、ISO 带秒/省略秒等多种口径）
+            occurredAt = com.nexus.ai.risk.RiskEvaluationContext
+                    .parseInstant(String.valueOf(payload.get("occurredAt")))
+                    .orElseThrow(() -> new BizException(com.nexus.common.result.ResultCode.PARAM_INVALID,
+                            "occurredAt 日期格式不合法"));
+        }
+        Long entityId = payload.get("entityId") == null ? null
+                : Long.valueOf(String.valueOf(payload.get("entityId")));
+        return new EventCreateRequest(entityId,
+                optionalString(payload, "eventType") == null ? "other" : optionalString(payload, "eventType"),
+                requireString(payload, "title"),
+                optionalString(payload, "description"),
+                occurredAt,
+                null);
     }
 
     private TaskCreateRequest toTaskRequest(Map<String, Object> payload) {

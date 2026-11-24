@@ -8,10 +8,10 @@ import RiskSummaryCard from "@/components/dashboard/risk-summary-card";
 import AgentTaskCard from "@/components/dashboard/agent-task-card";
 import GoalProgressCard from "@/components/dashboard/goal-progress";
 import TodayActions from "@/components/dashboard/today-actions";
-import { listEntities, listEvents, listFacts } from "@/services/world";
+import { listEvents } from "@/services/world";
 import { listRisks } from "@/services/risks";
-import { listTasks } from "@/services/tasks";
 import { listRuns } from "@/services/agent";
+import { getDashboardSummary } from "@/services/dashboard";
 import { isLoggedIn } from "@/services/auth";
 import { MOCK_ACTIONS, MOCK_GOALS } from "@/mock/dashboard";
 import type {
@@ -27,8 +27,6 @@ import type {
 /** 驾驶舱数据区（已切真实接口）：状态指标、近期事件、风险摘要、Agent 任务。
  * 目标进度与今日行动契约暂无对应接口，沿用 Mock（mock/dashboard.ts 已标注）。
  */
-
-const PAGE_SIZE_1 = 1;
 
 function toStatusMetric(metrics: {
   factTotal: number;
@@ -100,21 +98,20 @@ export default function DashboardData() {
         return { phase: "error", message: "请先登录后再查看驾驶舱数据" };
       }
       try {
-        const [facts, entities, risks, tasks, events, runs] = await Promise.all([
-          listFacts({ page: 1, pageSize: PAGE_SIZE_1 }),
-          listEntities({ page: 1, pageSize: PAGE_SIZE_1 }),
+        // 概览指标走聚合接口（一次返回计数与风险分布），事件/风险/Agent 列表仍取各自契约接口
+        const [summary, risks, events, runs] = await Promise.all([
+          getDashboardSummary(),
           listRisks({ status: "open", page: 1, pageSize: 5 }),
-          listTasks({ page: 1, pageSize: PAGE_SIZE_1 }),
           listEvents({ page: 1, pageSize: 5 }),
           listRuns({ page: 1, pageSize: 3 }),
         ]);
         return {
           phase: "ready",
           metrics: toStatusMetric({
-            factTotal: facts.total,
-            entityTotal: entities.total,
-            openRiskTotal: risks.total,
-            taskTotal: tasks.total,
+            factTotal: summary.factTotal,
+            entityTotal: summary.entityTotal,
+            openRiskTotal: summary.openRiskTotal,
+            taskTotal: summary.taskTotal,
           }),
           events: events.records.map(toTimelineEvent),
           risks: risks.records.map(toRiskItem),

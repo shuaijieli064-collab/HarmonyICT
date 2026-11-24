@@ -22,8 +22,10 @@ public class AgentToolRegistry {
     public AgentToolRegistry() {
         register(new AgentTool("read_fact", "L0", "fact", "读取有效事实，供汇总与解释"));
         register(new AgentTool("read_event", "L0", "event", "读取事件时间线，辅助汇总"));
+        register(new AgentTool("read_risk", "L0", "risk", "读取当前风险列表，辅助解释与建议"));
         register(new AgentTool("create_task", "L1", "task", "创建待办，执行前需向用户展示"));
         register(new AgentTool("update_fact", "L2", "fact", "更新世界模型事实，须用户授权后执行"));
+        register(new AgentTool("create_event", "L2", "event", "创建日程/事件（课程、会议、评审等），须用户授权后执行"));
     }
 
     private void register(AgentTool tool) {
