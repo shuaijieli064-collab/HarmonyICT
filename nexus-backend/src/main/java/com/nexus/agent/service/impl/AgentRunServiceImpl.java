@@ -13,6 +13,7 @@ import com.nexus.agent.entity.AgentRun;
 import com.nexus.agent.mapper.AgentActionLogMapper;
 import com.nexus.agent.mapper.AgentRunMapper;
 import com.nexus.agent.service.AgentRunService;
+import com.nexus.agent.util.AgentAuditSupport;
 import com.nexus.common.exception.BizException;
 import com.nexus.common.result.PageResult;
 import com.nexus.common.result.ResultCode;
@@ -21,7 +22,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
  * Agent 编排服务实现。
@@ -81,6 +86,23 @@ public class AgentRunServiceImpl implements AgentRunService {
     }
 
     @Override
+    public PageResult<AgentActionLogResponse> listLogs(Long userId, Long runId, String level,
+                                                       String result, int page, int pageSize) {
+        // 先校验 run 归属，避免通过日志接口探测他人 runId
+        requireRun(userId, runId);
+        LambdaQueryWrapper<AgentActionLog> wrapper = new LambdaQueryWrapper<AgentActionLog>()
+                .eq(AgentActionLog::getUserId, userId)
+                .eq(AgentActionLog::getRunId, runId)
+                .eq(level != null && !level.isBlank(), AgentActionLog::getLevel, level)
+                .eq(result != null && !result.isBlank(), AgentActionLog::getResult, result)
+                .orderByAsc(AgentActionLog::getCreatedAt);
+        IPage<AgentActionLog> pageResult = logMapper.selectPage(AgentPageHelper.clampPage(page, pageSize), wrapper);
+        List<AgentActionLogResponse> records = pageResult.getRecords().stream()
+                .map(AgentActionLogResponse::from).toList();
+        return PageResult.of(records, pageResult.getTotal(), pageResult.getCurrent(), pageResult.getSize());
+    }
+
+    @Override
     public AgentRunResponse execute(Long userId, Long id) {
         AgentRun run = requireRun(userId, id);
         if (!"running".equals(run.getStatus())) {
@@ -94,24 +116,48 @@ public class AgentRunServiceImpl implements AgentRunService {
     @Transactional
     public RunDetailResponse authorize(Long userId, Long id, RunAuthorizeRequest request) {
         requireRun(userId, id);
-        List<Long> logIds = request.logIds();
-        if (Boolean.TRUE.equals(request.approve())) {
-            // 授权留痕：authorized=true 表示用户放行该写操作
-            logMapper.update(null, new LambdaUpdateWrapper<AgentActionLog>()
-                    .eq(AgentActionLog::getUserId, userId)
-                    .eq(AgentActionLog::getRunId, id)
-                    .in(AgentActionLog::getId, logIds)
-                    .set(AgentActionLog::getAuthorized, true)
-                    .set(AgentActionLog::getUpdatedAt, Instant.now()));
+        List<Long> requested = request.logIds();
+        if (requested == null || requested.isEmpty()) {
+            throw new BizException(ResultCode.PARAM_INVALID, "logIds 不能为空");
+        }
+        // 逐条校验归属：批量 update 的 where 条件会静默忽略越权 id，这里必须显式拒绝
+        Set<Long> uniqueIds = new HashSet<>(requested);
+        List<AgentActionLog> targets = logMapper.selectList(new LambdaQueryWrapper<AgentActionLog>()
+                .eq(AgentActionLog::getUserId, userId)
+                .eq(AgentActionLog::getRunId, id)
+                .in(AgentActionLog::getId, uniqueIds));
+        if (targets.size() != uniqueIds.size()) {
+            throw new BizException(ResultCode.AGENT_PERMISSION_DENIED, "授权日志不存在或不属于当前用户");
+        }
+
+        Instant now = Instant.now();
+        boolean approve = Boolean.TRUE.equals(request.approve());
+        for (AgentActionLog target : targets) {
+            if (!"L2".equals(target.getLevel())) {
+                throw new BizException(ResultCode.PARAM_INVALID, "仅 L2 操作需要授权");
+            }
+            if (!"pending".equals(target.getResult())) {
+                // 已处理过的日志幂等返回，不重复执行
+                continue;
+            }
+            Map<String, Object> audit = new LinkedHashMap<>();
+            audit.put("action", target.getActionType());
+            audit.put("authorizedBy", String.valueOf(userId));
+            audit.put("authorizedAt", now.toString());
+            audit.put("decision", approve ? "approved" : "denied");
+            target.setPayload(AgentAuditSupport.write(target.getPayload(), audit));
+            target.setUpdatedAt(now);
+            if (approve) {
+                // 授权留痕：authorized=true 表示用户放行该写操作
+                target.setAuthorized(true);
+            } else {
+                target.setResult("denied");
+            }
+            logMapper.updateById(target);
+        }
+        if (approve) {
             // 授权后立即执行已授权动作（B review 反馈缺口：此前只改状态不执行）
             actionExecutor.executeAuthorized(userId, id);
-        } else {
-            logMapper.update(null, new LambdaUpdateWrapper<AgentActionLog>()
-                    .eq(AgentActionLog::getUserId, userId)
-                    .eq(AgentActionLog::getRunId, id)
-                    .in(AgentActionLog::getId, logIds)
-                    .set(AgentActionLog::getResult, "denied")
-                    .set(AgentActionLog::getUpdatedAt, Instant.now()));
         }
         return selfProxy.get(userId, id);
     }

@@ -1,6 +1,7 @@
 package com.nexus.agent.service;
 
 import com.nexus.agent.dto.RunCreateRequest;
+import com.nexus.agent.dto.AgentActionLogResponse;
 import com.nexus.agent.dto.RunDetailResponse;
 import com.nexus.agent.dto.RunAuthorizeRequest;
 import com.nexus.common.result.PageResult;
@@ -20,6 +21,13 @@ public interface AgentRunService {
 
     /** 详情：含操作日志列表 */
     RunDetailResponse get(Long userId, Long id);
+
+    /**
+     * V3 执行日志查询：供 Agent Center 时间线按页加载。
+     * 严格按 JWT user_id + runId 过滤，level/result 可选；响应含审计字段。
+     */
+    PageResult<AgentActionLogResponse> listLogs(Long userId, Long runId, String level, String result,
+                                                int page, int pageSize);
 
     /** 触发异步编排（重复触发 running 状态的 run 幂等返回快照；已结束的 run 拒绝） */
     AgentRunResponse execute(Long userId, Long id);
