@@ -88,6 +88,18 @@ class AgentBoundaryGuardTest {
     }
 
     @Test
+    void simulationRisksNeverBecomeAgentActions() {
+        for (String sim : List.of("SIM_KEEP_RENEWAL_30D", "SIM_KEEP_BUDGET_OVER", "SIM_CANCEL_RENEWAL")) {
+            assertTrue(catalog.find(sim).isEmpty(), sim + " 不应进入 Agent 能力目录");
+            assertThrows(BizException.class,
+                    () -> guard.validate(sim, "L0", USER_ID, Map.of("title", "推演"), Set.of()));
+        }
+        assertTrue(catalog.all().stream().noneMatch(t -> t.actionType().startsWith("SIM_")));
+        assertTrue(new AgentPlanAugmenter().augment("解释 SIM_KEEP_RENEWAL_30D 推演", List.of()).stream()
+                .noneMatch(a -> a.actionType().startsWith("SIM_")));
+    }
+
+    @Test
     void augmenterAddsOnlyReadOnlyToolsForQueryIntent() {
         AgentPlanAugmenter augmenter = new AgentPlanAugmenter();
         List<AgentPlanRequest.PlannedAction> base = List.of(
