@@ -35,7 +35,6 @@ public class MaasLlmProvider implements LlmProvider {
 
     private static final Logger log = LoggerFactory.getLogger(MaasLlmProvider.class);
     private static final String SYSTEM_PROMPT = "你是 NEXUS 的结构化信息抽取引擎，严格按要求只输出 JSON。";
-    private static final String COMPLETION_PATH = "/v1/chat/completions";
 
     private final AiProperties properties;
     private final ObjectMapper objectMapper;
@@ -79,9 +78,12 @@ public class MaasLlmProvider implements LlmProvider {
             payload.put("response_format", Map.of("type", "json_object"));
         }
 
+        // 为什么路径也走配置：华为云 MaaS 新旧端点 path 不同（/v1 vs /v2），
+        // 写死会让新版端点 404（见 cloud-deployment-plan 3.2）
+        String completionPath = normalizePath(maas.getCompletionPath());
         try {
             String body = buildClient().post()
-                    .uri(COMPLETION_PATH)
+                    .uri(completionPath)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
@@ -102,11 +104,22 @@ public class MaasLlmProvider implements LlmProvider {
         int timeoutMillis = (int) Duration.ofSeconds(Math.max(1, maas.getTimeoutSeconds())).toMillis();
         factory.setConnectTimeout(timeoutMillis);
         factory.setReadTimeout(timeoutMillis);
+        // baseUrl 去掉结尾斜杠，避免与 completionPath 的前导斜杠拼成双斜杠
+        String baseUrl = maas.getBaseUrl().stripTrailing();
         return RestClient.builder()
-                .baseUrl(maas.getBaseUrl())
+                .baseUrl(baseUrl)
                 .requestFactory(factory)
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + maas.getApiKey())
                 .build();
+    }
+
+    /** 兼容配置漏写前导斜杠（填 v2/chat/completions）与空串（空串回退默认 v1） */
+    private String normalizePath(String path) {
+        if (isBlank(path)) {
+            return "/v1/chat/completions";
+        }
+        String value = path.strip();
+        return value.startsWith("/") ? value : "/" + value;
     }
 
     private LlmRequest.LlmResponse parseResponse(String body) throws Exception {
