@@ -27,6 +27,27 @@ nexus:
     # AK/SK 只走环境变量（规范 2.4 红线），部署时由云上凭据管理注入
     access-key: ${NEXUS_OBS_AK:}
     secret-key: ${NEXUS_OBS_SK:}
+  # CORS 白名单：部署时注入公网 EIP/域名，逗号分隔（cloud-deployment-plan 第 5 节改造 ①）
+  cors:
+    allowed-origins: ${NEXUS_CORS_ORIGINS:http://localhost:3000,http://localhost:3001}
+  ai:
+    # 生产显式走真实华为云链路（本地无凭证环境用 local profile 的 mock 模式）
+    mode: real
+    maas:
+      base-url: ${NEXUS_AI_MAAS_BASE_URL:https://api.modelarts-maas.com}
+      # 旧区域端点填 /v1/chat/completions；新版 ModelArts Studio 全局端点为 /v2/chat/completions，
+      # 以控制台「API调用」面板给出的实际 URL 为准
+      completion-path: ${NEXUS_AI_MAAS_COMPLETION_PATH:/v1/chat/completions}
+      api-key: ${NEXUS_AI_MAAS_API_KEY:}
+      model: ${NEXUS_AI_MAAS_MODEL:}
+    ocr:
+      # 以下默认值即 cn-north-4 区域端点，凭据只走环境变量（规范 2.4 红线）
+      endpoint: ${NEXUS_AI_OCR_ENDPOINT:https://ocr.cn-north-4.myhuaweicloud.com}
+      iam-endpoint: ${NEXUS_AI_OCR_IAM_ENDPOINT:https://iam.cn-north-4.myhuaweicloud.com}
+      username: ${NEXUS_AI_OCR_USERNAME:}
+      password: ${NEXUS_AI_OCR_PASSWORD:}
+      domain-name: ${NEXUS_AI_OCR_DOMAIN_NAME:}
+      project-id: ${NEXUS_AI_OCR_PROJECT_ID:}
 
 management:
   health:

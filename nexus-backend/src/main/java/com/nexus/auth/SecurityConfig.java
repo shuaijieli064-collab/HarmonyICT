@@ -1,6 +1,7 @@
 package com.nexus.auth;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -14,6 +15,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -23,6 +25,13 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    /**
+     * CORS 白名单：逗号分隔，默认本地前端 dev server（3000/3001）；
+     * 上云后通过 NEXUS_CORS_ORIGINS 注入公网 EIP/域名（cloud-deployment-plan 第 5 节改造 ①）。
+     */
+    @Value("${nexus.cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
+    private String corsAllowedOrigins;
 
 
     @Bean
@@ -49,13 +58,16 @@ public class SecurityConfig {
     }
 
     /**
-     * 本地/联调 CORS：仅放行前端 dev server 源（3000/3001）；
+     * CORS：默认仅放行前端 dev server 源（3000/3001），生产经 NEXUS_CORS_ORIGINS 覆盖；
      * JWT 走 Authorization 头，不开 allowCredentials。
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:3001"));
+        config.setAllowedOrigins(Arrays.stream(corsAllowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

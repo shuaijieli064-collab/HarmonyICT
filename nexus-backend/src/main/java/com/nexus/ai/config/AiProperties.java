@@ -25,8 +25,14 @@ public class AiProperties {
     }
 
     public static class Maas {
-        /** 只到域名，代码追加 /v1/chat/completions */
+        /** 只到域名，代码追加 completionPath（默认 /v1/chat/completions） */
         private String baseUrl = "https://maas-api.cn-southwest-2.myhuaweicloud.com";
+        /**
+         * chat/completions 路径：旧端点为 /v1/chat/completions；
+         * 新版 ModelArts Studio 全局端点（api.modelarts-maas.com）为 /v2/chat/completions，
+         * 以控制台「API调用」面板给出的实际 URL 为准（NEXUS_AI_MAAS_COMPLETION_PATH 覆盖）。
+         */
+        private String completionPath = "/v1/chat/completions";
         private String apiKey = "";
         private String model = "";
         private double temperature = 0.1;
@@ -40,6 +46,14 @@ public class AiProperties {
 
         public void setBaseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
+        }
+
+        public String getCompletionPath() {
+            return completionPath;
+        }
+
+        public void setCompletionPath(String completionPath) {
+            this.completionPath = completionPath;
         }
 
         public String getApiKey() {

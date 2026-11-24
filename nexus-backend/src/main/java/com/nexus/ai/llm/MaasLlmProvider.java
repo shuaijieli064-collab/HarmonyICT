@@ -35,7 +35,6 @@ public class MaasLlmProvider implements LlmProvider {
 
     private static final Logger log = LoggerFactory.getLogger(MaasLlmProvider.class);
     private static final String SYSTEM_PROMPT = "你是 NEXUS 的结构化信息抽取引擎，严格按要求只输出 JSON。";
-    private static final String COMPLETION_PATH = "/v1/chat/completions";
 
     private final AiProperties properties;
     private final ObjectMapper objectMapper;
@@ -81,7 +80,7 @@ public class MaasLlmProvider implements LlmProvider {
 
         try {
             String body = buildClient().post()
-                    .uri(COMPLETION_PATH)
+                    .uri(maas.getCompletionPath())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()

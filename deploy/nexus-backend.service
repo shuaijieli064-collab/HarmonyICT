@@ -1,0 +1,29 @@
+# NEXUS 后端 systemd 服务单元（ECS Ubuntu）
+# 安装：sudo cp deploy/nexus-backend.service /etc/systemd/system/ && sudo systemctl daemon-reload
+# 配置来源：/etc/nexus/nexus.env（权限必须 600，凭据红线：不进仓库、不进日志）
+
+[Unit]
+Description=NEXUS backend (Spring Boot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nexus
+Group=nexus
+WorkingDirectory=/opt/nexus
+# 主包路径：CodeArts 部署任务把构建产物上传到 /opt/nexus/nexus-backend.jar
+ExecStart=/usr/bin/java -XX:MaxRAMPercentage=70 -jar /opt/nexus/nexus-backend.jar --spring.profiles.active=prod
+EnvironmentFile=/etc/nexus/nexus.env
+# 失败自动拉起，60s 内最多重试 5 次
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=60
+StartLimitBurst=5
+# 硬化：只开必要权限
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
