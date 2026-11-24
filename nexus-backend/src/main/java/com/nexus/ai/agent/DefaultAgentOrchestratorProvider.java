@@ -35,6 +35,7 @@ public class DefaultAgentOrchestratorProvider implements AgentOrchestratorProvid
     private static final String READ_FACT = "read_fact";
     private static final String READ_EVENT = "read_event";
     private static final String CREATE_TASK = "create_task";
+    private static final String CREATE_EVENT = "create_event";
     private static final String UPDATE_FACT = "update_fact";
 
     private final AgentToolRegistry toolRegistry;
@@ -65,6 +66,7 @@ public class DefaultAgentOrchestratorProvider implements AgentOrchestratorProvid
         List<AgentPlanRequest.PlannedAction> actions = switch (parsed.type()) {
             case SUMMARY, UNKNOWN -> readOnlyPlan();
             case CREATE_TASK -> createTaskPlan(request, parsed);
+            case CREATE_EVENT -> createEventPlan(request, parsed);
             case UPDATE_FACT -> updateFactPlan(request, parsed);
         };
 
@@ -119,6 +121,26 @@ public class DefaultAgentOrchestratorProvider implements AgentOrchestratorProvid
         payload.put("priority", priority(dueDate));
 
         return List.of(action(CREATE_TASK, payload, "用户要求创建待办；写操作执行前需向用户展示（L1）"));
+    }
+
+    private List<AgentPlanRequest.PlannedAction> createEventPlan(
+            AgentPlanRequest request, AgentIntentParser.ParsedIntent parsed) {
+        FactSnapshot target = parsed.targetFact();
+        Map<String, Object> payload = new LinkedHashMap<>();
+        String title = target == null
+                ? "日程：" + request.intent()
+                : target.subjectName() + "：" + request.intent();
+        payload.put("title", title);
+        payload.put("description", "由 Agent 根据用户意图创建：" + request.intent());
+        payload.put("eventType", "other");
+        if (target != null) {
+            payload.put("entityId", target.subjectId());
+        }
+        if (parsed.targetDate() != null) {
+            // 日期按当天 00:00 UTC 落事件时间；用完整 ISO 格式（Instant.toString 会省略秒，执行器解析会失败）
+            payload.put("occurredAt", parsed.targetDate() + "T00:00:00Z");
+        }
+        return List.of(action(CREATE_EVENT, payload, "用户要求创建日程/事件；写操作须用户授权后执行（L2）"));
     }
 
     private List<AgentPlanRequest.PlannedAction> updateFactPlan(

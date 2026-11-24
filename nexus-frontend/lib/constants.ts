@@ -5,7 +5,7 @@ export interface NavItem {
   label: string;
 }
 
-/** 六大页面导航，顺序即产品主流程 */
+/** 七大页面导航，顺序即产品主流程 */
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/", label: "驾驶舱" },
   { href: "/world-model", label: "世界模型" },
@@ -13,7 +13,15 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/decision-lab", label: "决策实验室" },
   { href: "/agent-center", label: "Agent 中心" },
   { href: "/asset-center", label: "资产中心" },
+  { href: "/notifications", label: "通知中心" },
 ] as const;
+
+/** 通知类别 → 展示文案与配色（全站统一语义） */
+export const NOTIFICATION_CATEGORY_MAP = {
+  risk: { label: "风险提醒", text: "text-warning", bg: "bg-warning/15" },
+  agent: { label: "Agent", text: "text-primary", bg: "bg-primary/15" },
+  system: { label: "系统", text: "text-secondary", bg: "bg-secondary/15" },
+} as const;
 
 /** ECharts 统一配色顺序（docs/design-system.md 5.5） */
 export const CHART_COLORS: readonly string[] = [

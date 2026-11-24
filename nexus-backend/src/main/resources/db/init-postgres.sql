@@ -171,3 +171,20 @@ CREATE TABLE IF NOT EXISTS agent_action_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_wal_user_run ON agent_action_logs (user_id, run_id);
 CREATE INDEX IF NOT EXISTS idx_wal_user_level ON agent_action_logs (user_id, level);
+-- 通知表（体量扩充新增）：站内提醒（风险产生 / Agent 动作结果 / 系统公告）；
+-- ref_type + ref_id 指向来源记录，同步逻辑按 (ref_type, ref_id) 幂等
+CREATE TABLE IF NOT EXISTS notifications (
+    id          BIGINT PRIMARY KEY,
+    user_id     BIGINT        NOT NULL REFERENCES users(id),
+    category    VARCHAR(16)   NOT NULL,
+    title       VARCHAR(255)  NOT NULL,
+    content     TEXT,
+    ref_type    VARCHAR(32),
+    ref_id      BIGINT,
+    read_at     TIMESTAMP,
+    created_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_notification_category CHECK (category IN ('risk','agent','system'))
+);
+CREATE INDEX IF NOT EXISTS idx_nt_user_read ON notifications (user_id, read_at);
+CREATE INDEX IF NOT EXISTS idx_nt_user_created ON notifications (user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_nt_ref ON notifications (ref_type, ref_id);

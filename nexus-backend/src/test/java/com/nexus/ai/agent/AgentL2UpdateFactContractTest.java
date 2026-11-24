@@ -30,6 +30,7 @@ import com.nexus.ai.dto.FactSnapshot;
 import com.nexus.task.service.TaskService;
 import com.nexus.world.dto.FactResponse;
 import com.nexus.world.dto.FactUpdateRequest;
+import com.nexus.world.service.WorldEventService;
 import com.nexus.world.service.WorldFactService;
 
 /**
@@ -80,6 +81,7 @@ class AgentL2UpdateFactContractTest {
         AgentActionLogMapper logMapper = mock(AgentActionLogMapper.class);
         TaskService taskService = mock(TaskService.class);
         WorldFactService factService = mock(WorldFactService.class);
+        WorldEventService eventService = mock(WorldEventService.class);
         when(logMapper.selectList(any())).thenReturn(List.of(actionLog));
         when(factService.update(eq(USER_ID), eq(FACT_ID), any(FactUpdateRequest.class)))
                 .thenReturn(new FactResponse(999L, 20L, "warranty_until", "2027-06-01",
@@ -88,7 +90,7 @@ class AgentL2UpdateFactContractTest {
                         "active", "confirmed", Instant.now(), Instant.now()));
 
         AgentActionExecutor executor = new AgentActionExecutor(
-                logMapper, taskService, factService, new ObjectMapper());
+                logMapper, taskService, factService, eventService, new ObjectMapper());
 
         int executed = executor.executeAuthorized(USER_ID, RUN_ID);
 
@@ -119,7 +121,7 @@ class AgentL2UpdateFactContractTest {
         when(logMapper.selectList(any())).thenReturn(List.of(actionLog));
 
         AgentActionExecutor executor = new AgentActionExecutor(
-                logMapper, taskService, factService, new ObjectMapper());
+                logMapper, taskService, factService, mock(WorldEventService.class), new ObjectMapper());
 
         int executed = executor.executeAuthorized(USER_ID, RUN_ID);
 

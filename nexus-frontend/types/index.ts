@@ -252,3 +252,103 @@ export interface RunDetail {
   run: AgentRun;
   logs: AgentActionLog[];
 }
+
+/* ===== 资产中心 / 情报中心（聚合视图，BIGINT 字段一律 string） ===== */
+
+/** 资产关联事实（GET /api/v1/assets 的 facts 字段，来自 world_facts active 状态） */
+export interface AssetFact {
+  factId: string;
+  predicate: string;
+  objectValue: string;
+  valueType: FactValueType | string;
+  unit: string | null;
+  normalizedValue: string | null;
+  validUntil: string | null;
+}
+
+/** 资产条目：世界实体 + 其关联事实聚合 */
+export interface Asset {
+  id: string;
+  entityType: EntityType | string;
+  name: string;
+  attributes: string;
+  createdAt: string;
+  facts: AssetFact[];
+}
+
+/** 资产汇总（GET /api/v1/assets/summary） */
+export interface AssetSummary {
+  totalAssets: number;
+  byType: Record<string, number>;
+  totalValue: number;
+  valueUnit: string | null;
+  openRiskCount: number;
+}
+
+/** 情报中心汇总（GET /api/v1/intel/summary） */
+export interface IntelSummary {
+  openRiskCount: number;
+  riskByLevel: Record<string, number>;
+  recentEventCount: number;
+  pendingTaskCount: number;
+  recentAgentRunCount: number;
+}
+
+/** 情报流条目类型 */
+export type IntelFeedType = "risk" | "event" | "agent";
+
+/** 情报流条目（风险/事件/Agent 执行的统一动态） */
+export interface IntelFeedItem {
+  type: IntelFeedType | string;
+  refId: string;
+  title: string | null;
+  description: string | null;
+  /** 仅风险条目有值（low/medium/high） */
+  level: RiskLevel | string | null;
+  status: string | null;
+  occurredAt: string | null;
+}
+
+/* ===== 通知中心 / 驾驶舱聚合（体量扩充新增，BIGINT 字段一律 string） ===== */
+
+/** 通知类别 */
+export type NotificationCategory = "risk" | "agent" | "system";
+
+/** 通知条目（GET /api/v1/notifications；readAt 为 null 即未读） */
+export interface NotificationItem {
+  id: string;
+  category: NotificationCategory | string;
+  title: string;
+  content: string | null;
+  refType: string | null;
+  refId: string | null;
+  read: boolean;
+  createdAt: string;
+  readAt: string | null;
+}
+
+/** 驾驶舱聚合统计（GET /api/v1/dashboard/summary） */
+export interface DashboardSummary {
+  entityTotal: number;
+  factTotal: number;
+  eventTotal: number;
+  openRiskTotal: number;
+  taskTotal: number;
+  todoTaskTotal: number;
+  agentRunTotal: number;
+  unreadNotificationTotal: number;
+  riskByLevel: { level: RiskLevel | string; count: number }[];
+  recentEvents: {
+    id: string;
+    title: string;
+    eventType: string;
+    occurredAt: string | null;
+  }[];
+  topRisks: {
+    id: string;
+    level: RiskLevel | string;
+    title: string;
+    ruleCode: string | null;
+    status: string;
+  }[];
+}

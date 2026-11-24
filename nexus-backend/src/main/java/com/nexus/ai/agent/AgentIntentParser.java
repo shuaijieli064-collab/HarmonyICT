@@ -32,6 +32,10 @@ public class AgentIntentParser {
     private static final Set<String> CREATE_TASK_KEYWORDS = Set.of(
             "待办", "任务", "提醒", "安排", "计划");
 
+    /** 日程关键词须在 CREATE_TASK 之前判定：「安排日程」应建事件而非待办 */
+    private static final Set<String> CREATE_EVENT_KEYWORDS = Set.of(
+            "日程", "日历", "会议", "事件");
+
     private static final Set<String> SUMMARY_KEYWORDS = Set.of(
             "查看", "汇总", "整理", "列出", "有哪些", "概览", "风险");
 
@@ -45,6 +49,7 @@ public class AgentIntentParser {
         FactSnapshot target = switch (type) {
             case UPDATE_FACT -> locateFact(text, safeFacts);
             case CREATE_TASK -> nearestDueFact(text, safeFacts);
+            case CREATE_EVENT -> locateFact(text, safeFacts);
             default -> null;
         };
         return new ParsedIntent(type, target, targetDate, requestedValue);
@@ -53,6 +58,9 @@ public class AgentIntentParser {
     private IntentType detectType(String text) {
         if (containsAny(text, UPDATE_KEYWORDS)) {
             return IntentType.UPDATE_FACT;
+        }
+        if (containsAny(text, CREATE_EVENT_KEYWORDS)) {
+            return IntentType.CREATE_EVENT;
         }
         if (containsAny(text, CREATE_TASK_KEYWORDS)) {
             return IntentType.CREATE_TASK;
@@ -180,7 +188,7 @@ public class AgentIntentParser {
     }
 
     public enum IntentType {
-        SUMMARY, CREATE_TASK, UPDATE_FACT, UNKNOWN
+        SUMMARY, CREATE_TASK, CREATE_EVENT, UPDATE_FACT, UNKNOWN
     }
 
     /**
