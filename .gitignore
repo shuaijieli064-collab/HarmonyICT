@@ -20,6 +20,9 @@ build/
 .vscode/
 *.iml
 
+# 本地一键启动的运行态（日志与 PID）
+scripts/.dev/
+
 # 系统
 .DS_Store
 Thumbs.db
