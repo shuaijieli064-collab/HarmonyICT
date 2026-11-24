@@ -5,6 +5,7 @@ import com.nexus.agent.mapper.AgentActionLogMapper;
 import com.nexus.agent.service.impl.AgentActionExecutor;
 import com.nexus.agent.util.AgentAuditSupport;
 import com.nexus.task.service.TaskService;
+import com.nexus.world.service.WorldEventService;
 import com.nexus.world.service.WorldFactService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,8 @@ class AgentActionExecutorBoundaryTest {
         // 模拟查询条件生效：执行器只会拿到 authorized=true 的日志
         when(logMapper.selectList(any())).thenReturn(List.of());
 
-        new AgentActionExecutor(logMapper, taskService, factService, new ObjectMapper())
+        new AgentActionExecutor(logMapper, taskService, factService,
+                org.mockito.Mockito.mock(WorldEventService.class), new ObjectMapper())
                 .executeAuthorized(USER_ID, RUN_ID);
 
         verify(taskService, never()).create(any(), any());
@@ -60,7 +62,8 @@ class AgentActionExecutorBoundaryTest {
         WorldFactService factService = mock(WorldFactService.class);
         when(logMapper.selectList(any())).thenReturn(List.of(log));
 
-        int executed = new AgentActionExecutor(logMapper, taskService, factService, new ObjectMapper())
+        int executed = new AgentActionExecutor(logMapper, taskService, factService,
+                org.mockito.Mockito.mock(WorldEventService.class), new ObjectMapper())
                 .executeAuthorized(USER_ID, RUN_ID);
 
         assertEquals(0, executed);
