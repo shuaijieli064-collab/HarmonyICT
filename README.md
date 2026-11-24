@@ -38,9 +38,9 @@ Redis 缓存风险状态与任务状态
 
 | 页面 | 路由 | 作用 |
 |---|---|---|
-| 个人驾驶舱 | `/` | 一屏看清状态 → 风险 → 行动 |
-| 世界模型 | `/world-model` | 实体关系图谱 + 事实列表 + 来源与置信度 |
-| 情报中心 | `/intelligence-center` | 风险等级、触发规则、关联事实、确认/解决 |
+| 个人驾驶舱 | `/` | 一屏看清状态 → 风险 → 行动，健康度环形仪表 |
+| 世界模型 | `/world-model` | 实体关系图谱 + 事实列表 + 来源与置信度，事实历史版本回溯 |
+| 情报中心 | `/intelligence-center` | 风险等级、触发规则、关联事实、确认/解决，风险趋势 14 天折线 |
 | 决策实验室 | `/decision-lab` | 洞察引擎族概览与未来时间线 |
 | Agent 中心 | `/agent-center` | 执行记录、操作日志、L2 授权二次确认 |
 | 资产中心 | `/asset-center` | 资产事实表格 |
@@ -95,6 +95,9 @@ bash scripts/dev-start.sh
 
 # 停止
 bash scripts/dev-stop.sh
+
+# Windows 一键重建演示数据（注册演示账号 + 上传样例资料 + 触发风险扫描）
+powershell -File scripts/seed-demo.ps1
 ```
 
 - 前端：<http://localhost:3000>
@@ -103,6 +106,22 @@ bash scripts/dev-stop.sh
   真实联调需显式覆盖 `--nexus.ai.mode=real`，凭据只走环境变量，不进仓库。
 - 一键脚本中的 Maven 路径可通过 `MVN_CMD` 环境变量覆盖，例如 `MVN_CMD=mvn bash scripts/dev-start.sh`。
 - 前端单独构建：`cd nexus-frontend && npm ci && npm run build && npm run lint`。
+- 前端已配置 PWA manifest（`nexus-frontend/public/manifest.json`），支持添加到主屏幕/独立窗口运行。
+
+## 4.1 核心能力清单（演示版）
+
+| 能力 | 入口 | 说明 |
+|---|---|---|
+| 资料上传与抽取 | 世界模型 | PDF/图片/TXT → OBS 原文件 → OCR+大模型结构化事实 |
+| 风险双引擎 | 情报中心 | 规则引擎（证书/过期）+ AI 辅助分析，60s 定时扫描 + 一键手动扫描 |
+| 风险→待办派生 | 风险卡「生成待办」 | 一键把风险转成关联待办（riskId 溯源） |
+| 健康度评分 | 驾驶舱 | 新鲜度 40 + 风险 40 + 任务 20 加权综合分 |
+| 风险趋势 | 情报中心 | risk_snapshots 每日快照，近 14 天等级分布折线 |
+| 事实历史 | 世界模型「历史」 | supersede 链式版本回溯，展示变更时间与来源 |
+| 通知与周报 | 顶栏铃铛 | 风险/Agent 动作幂等生成通知；周报汇总 |
+| Agent L0–L2 | Agent 中心 | 双白名单（工具+能力）授权分级，L2 二次确认 |
+| 数据导出 | 资产中心 | 个人资料 JSON 导出 |
+| 双账号隔离 | — | 全部业务表按 `user_id` 隔离，验证记录见 `docs/evidence/` |
 
 ---
 

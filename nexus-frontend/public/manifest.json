@@ -1,0 +1,24 @@
+{
+  "name": "NEXUS · 个人资料智能管家",
+  "short_name": "NEXUS",
+  "description": "上传资料，AI 抽取结构化事实，构建个人世界模型，主动发现风险，授权生成行动。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
