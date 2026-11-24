@@ -69,6 +69,24 @@ Invoke-AgentFlow "2026年11月30日安排毕业答辩日程"
 $scan = Invoke-RestMethod -Uri "$BaseUrl/api/v1/risks/scan" -Method Post -Headers $headers
 Write-Step "风险扫描完成，本轮新增 $($scan.data.created) 条"
 
+# 5.5 合成 14 天历史风险快照（仅 local profile 端点；云端 RDS 用持久快照无需注入）
+try {
+    $seedSnap = Invoke-RestMethod -Uri "$BaseUrl/api/v1/risks/snapshots/demo-history?days=14" `
+        -Method Post -Headers $headers -TimeoutSec 15
+    Write-Step "历史快照: 注入 $($seedSnap.data.inserted) 天（跳过已存在 $($seedSnap.data.skippedExisting) 天），趋势图 14 天可看"
+} catch {
+    Write-Step "历史快照注入跳过（非 local profile 或端点不存在，云端使用真实持久快照）"
+}
+
+# 5.6 拉一次趋势确认（演示前自检）
+try {
+    $trend = Invoke-RestMethod -Uri "$BaseUrl/api/v1/risks/trend?days=14" -Headers $headers
+    $nonZero = ($trend.data | Where-Object { $_.openCount -gt 0 }).Count
+    Write-Step "趋势自检: 14 天中 $($nonZero) 天有 open 风险"
+} catch {
+    Write-Step "趋势自检失败: $($_.Exception.Message)"
+}
+
 # 6. 汇总
 $summary = Invoke-RestMethod -Uri "$BaseUrl/api/v1/dashboard/summary" -Headers $headers
 $s = $summary.data
