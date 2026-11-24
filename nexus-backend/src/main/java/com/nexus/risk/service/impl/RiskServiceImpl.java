@@ -32,13 +32,16 @@ public class RiskServiceImpl implements RiskService {
     private final WorldFactMapper factMapper;
     private final RiskRuleEngine ruleEngine;
     private final RiskAnalysisPipelineService analysisPipeline;
+    private final com.nexus.risk.snapshot.RiskSnapshotService snapshotService;
 
     public RiskServiceImpl(WorldRiskMapper riskMapper, WorldFactMapper factMapper,
-                           RiskRuleEngine ruleEngine, RiskAnalysisPipelineService analysisPipeline) {
+                           RiskRuleEngine ruleEngine, RiskAnalysisPipelineService analysisPipeline,
+                           com.nexus.risk.snapshot.RiskSnapshotService snapshotService) {
         this.riskMapper = riskMapper;
         this.factMapper = factMapper;
         this.ruleEngine = ruleEngine;
         this.analysisPipeline = analysisPipeline;
+        this.snapshotService = snapshotService;
     }
 
     @Override
@@ -108,5 +111,14 @@ public class RiskServiceImpl implements RiskService {
     @Override
     public int scanNow() {
         // 同步触发两个既有引擎的扫描逻辑（红线不变：风险只由规则产生）
-        return ruleEngine.scanNow() + analysisPipeline.scanNow();
-    }}
+        int created = ruleEngine.scanNow() + analysisPipeline.scanNow();
+        // 扫描后刷新今日风险快照（趋势图即时可见，同日 upsert 幂等）
+        snapshotService.snapshotAll();
+        return created;
+    }
+
+    @Override
+    public java.util.List<com.nexus.risk.snapshot.RiskSnapshotService.TrendPoint> trend(Long userId, int days) {
+        return snapshotService.trend(userId, days);
+    }
+}

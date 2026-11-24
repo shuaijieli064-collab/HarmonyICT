@@ -3,7 +3,7 @@
  */
 
 import { request } from "@/lib/http";
-import type { PageResult, Risk, RiskDetail } from "@/types";
+import type { PageResult, Risk, RiskDetail, RiskTrendPoint } from "@/types";
 
 export interface ListRisksOptions {
   page?: number;
@@ -37,4 +37,9 @@ export function resolveRisk(id: string) {
 /** 手动触发一次全量风险扫描（演示用：避免等待 60s 定时周期），返回本轮新增风险数 */
 export function triggerRiskScan() {
   return request<{ created: number }>("/api/v1/risks/scan", { method: "POST" });
+}
+
+/** 近 N 天风险趋势（快照数据，缺失日期补 0；扩展 B 组） */
+export function getRiskTrend(days = 7) {
+  return request<RiskTrendPoint[]>("/api/v1/risks/trend", { query: { days } });
 }

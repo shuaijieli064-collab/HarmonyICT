@@ -52,6 +52,12 @@ public class WorldFactController {
         return Result.ok(factService.get(UserContext.get(), id));
     }
 
+    /** 事实历史版本：链式失效保留的全部版本按时间倒序（扩展 B 组） */
+    @GetMapping("/{id}/history")
+    public Result<java.util.List<FactResponse>> history(@PathVariable Long id) {
+        return Result.ok(factService.history(UserContext.get(), id));
+    }
+
     @PutMapping("/{id}")
     public Result<FactResponse> update(@PathVariable Long id, @Valid @RequestBody FactUpdateRequest request) {
         return Result.ok(factService.update(UserContext.get(), id, request));

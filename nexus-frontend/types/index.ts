@@ -353,6 +353,28 @@ export interface DashboardSummary {
   }[];
 }
 
+/** 世界模型健康度评分（GET /api/v1/dashboard/health-score） */
+export interface HealthScore {
+  score: number;
+  level: "excellent" | "good" | "attention" | "critical" | string;
+  dimensions: {
+    key: string;
+    label: string;
+    score: number;
+    max: number;
+    detail: string;
+  }[];
+}
+
+/** 风险趋势点（GET /api/v1/risks/trend；快照数据，缺失日期补 0） */
+export interface RiskTrendPoint {
+  date: string;
+  openCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+}
+
 /* ===== 体量扩充第二波：图谱 / 周报 / 导出 ===== */
 
 /** 世界模型图谱节点（GET /api/v1/world/graph；kind ∈ entity|fact|event|risk） */

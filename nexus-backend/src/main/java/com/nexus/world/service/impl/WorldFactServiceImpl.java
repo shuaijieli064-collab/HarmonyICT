@@ -76,6 +76,20 @@ public class WorldFactServiceImpl implements WorldFactService {
     }
 
     @Override
+    public java.util.List<FactResponse> history(Long userId, Long id) {
+        // 以 (userId, subjectId, predicate) 为链取全部版本（含 superseded/retracted），按创建时间倒序
+        WorldFact current = requireFact(userId, id);
+        return factMapper.selectList(new LambdaQueryWrapper<WorldFact>()
+                        .eq(WorldFact::getUserId, userId)
+                        .eq(WorldFact::getSubjectId, current.getSubjectId())
+                        .eq(WorldFact::getPredicate, current.getPredicate())
+                        .orderByDesc(WorldFact::getCreatedAt))
+                .stream()
+                .map(FactResponse::from)
+                .toList();
+    }
+
+    @Override
     public PageResult<FactResponse> list(Long userId, Long subjectId, String predicate, Long sourceId,
                                          String status, int page, int pageSize) {
         String effectiveStatus = (status == null || status.isBlank()) ? "active" : status;

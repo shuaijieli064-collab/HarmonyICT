@@ -9,6 +9,7 @@ import com.nexus.risk.entity.WorldRisk;
 import com.nexus.risk.mapper.WorldRiskMapper;
 import com.nexus.task.mapper.TaskMapper;
 import com.nexus.world.entity.WorldEvent;
+import com.nexus.world.entity.WorldFact;
 import com.nexus.world.mapper.WorldEntityMapper;
 import com.nexus.world.mapper.WorldEventMapper;
 import com.nexus.world.mapper.WorldFactMapper;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -135,6 +137,48 @@ class DashboardServiceImplTest {
         assertEquals("high", tops.get(0).level());
         assertEquals("风险-high-" + now.toEpochMilli(), tops.get(0).title());
         assertEquals("low", tops.get(2).level());
+    }
+
+    @Test
+    void healthScoreWeightsFreshnessRiskAndTasks() {
+        Instant now = Instant.now();
+        // 新鲜事实（1 天内）→ 满分 40；1 条 high 未解决 → 40-10=30；无任务 → 基准 10
+        WorldFact fresh = new WorldFact();
+        fresh.setId(1L);
+        fresh.setUserId(1L);
+        fresh.setSubjectId(10L);
+        fresh.setPredicate("subscription_price");
+        fresh.setObjectValue("39.00");
+        fresh.setStatus("active");
+        fresh.setCreatedAt(now.minus(1, ChronoUnit.DAYS));
+        when(factMapper.selectList(any())).thenReturn(List.of(fresh));
+        when(riskMapper.selectList(any())).thenReturn(List.of(risk("high", "open", now)));
+        when(taskMapper.selectList(any())).thenReturn(List.of());
+
+        var health = service.healthScore(1L);
+
+        assertEquals(80, health.score());
+        assertEquals("good", health.level());
+        var freshness = health.dimensions().stream()
+                .filter(d -> "freshness".equals(d.key())).findFirst().orElseThrow();
+        assertEquals(40, freshness.score());
+        var riskDim = health.dimensions().stream()
+                .filter(d -> "risk".equals(d.key())).findFirst().orElseThrow();
+        assertEquals(30, riskDim.score());
+        assertTrue(riskDim.detail().contains("高 1"));
+    }
+
+    @Test
+    void healthScoreEmptyDataIsCritical() {
+        when(factMapper.selectList(any())).thenReturn(List.of());
+        when(riskMapper.selectList(any())).thenReturn(List.of());
+        when(taskMapper.selectList(any())).thenReturn(List.of());
+
+        var health = service.healthScore(1L);
+
+        // 空数据：新鲜度 0 + 风险 40 + 任务基准 10 = 50（attention 下限）
+        assertEquals(50, health.score());
+        assertEquals("attention", health.level());
     }
 
     private Page<WorldEvent> page(List<WorldEvent> records) {

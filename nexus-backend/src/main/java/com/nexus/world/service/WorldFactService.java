@@ -16,6 +16,12 @@ public interface WorldFactService {
     /** 查询详情 */
     FactResponse get(Long userId, Long id);
 
+    /**
+     * 事实历史版本（扩展 B 组）：链式失效保留的 superseded/retracted 行按时间倒序返回。
+     * 定位方式：以指定事实的 (userId, subjectId, predicate) 为链，返回整条链的全部版本。
+     */
+    java.util.List<FactResponse> history(Long userId, Long id);
+
     /** 分页查询：status 缺省 active；subjectId/predicate/sourceId 可选过滤，sourceId 是抽取结果轮询入口（契约 4.2） */
     PageResult<FactResponse> list(Long userId, Long subjectId, String predicate, Long sourceId, String status,
                                   int page, int pageSize);

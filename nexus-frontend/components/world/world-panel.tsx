@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { createEntity, listEntities, listFacts, parseEntityAttributes } from "@/services/world";
+import { History } from "lucide-react";
+import { createEntity, getFactHistory, listEntities, listFacts, parseEntityAttributes } from "@/services/world";
 import { ApiError } from "@/lib/http";
 import { useIsLoggedIn } from "@/hooks/use-auth";
 import { ENTITY_TYPE_MAP, FACT_STATUS_MAP } from "@/lib/constants";
@@ -26,6 +27,24 @@ export default function WorldPanel() {
   const authed = useIsLoggedIn();
   const [entities, setEntities] = useState<Entity[] | null>(null);
   const [facts, setFacts] = useState<Fact[] | null>(null);
+  const [historyId, setHistoryId] = useState<string | null>(null);
+  const [historyById, setHistoryById] = useState<Record<string, Fact[]>>({});
+
+  /** 展开/收起事实历史版本（扩展 B 组：链式失效保留的 superseded 行按时间倒序） */
+  const toggleHistory = useCallback(async (factId: string) => {
+    setHistoryId((prev) => (prev === factId ? null : factId));
+    setHistoryById((prev) => {
+      if (prev[factId]) return prev;
+      void getFactHistory(factId)
+        .then((versions) => {
+          setHistoryById((current) => ({ ...current, [factId]: versions }));
+        })
+        .catch(() => {
+          setHistoryById((current) => ({ ...current, [factId]: [] }));
+        });
+      return prev;
+    });
+  }, []);
   const [formOpen, setFormOpen] = useState(false);
   const [entityType, setEntityType] = useState<EntityType>("asset");
   const [name, setName] = useState("");
@@ -219,24 +238,56 @@ export default function WorldPanel() {
           <ul className="space-y-2">
             {facts.map((fact) => {
               const status = FACT_STATUS_MAP[fact.factStatus];
+              const historyOpen = historyId === fact.id;
               return (
-                <li
-                  key={fact.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-secondary/10 bg-card p-3"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm text-content">
-                      <span className="text-secondary">{fact.predicate}</span>：{fact.objectValue}
-                      {fact.unit ? ` ${fact.unit}` : ""}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted">
-                      置信度 {fact.confidence}
-                      {fact.evidence ? ` · ${fact.evidence}` : ""}
-                    </p>
+                <li key={fact.id} className="card-flat rounded-xl p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-content">
+                        <span className="text-secondary">{fact.predicate}</span>：{fact.objectValue}
+                        {fact.unit ? ` ${fact.unit}` : ""}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        置信度 {fact.confidence}
+                        {fact.evidence ? ` · ${fact.evidence}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void toggleHistory(fact.id)}
+                        className="flex items-center gap-1 text-xs text-primary transition-colors hover:underline"
+                      >
+                        <History size={12} strokeWidth={2} aria-hidden="true" />
+                        {historyOpen ? "收起历史" : "历史"}
+                      </button>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs ${status?.bg ?? ""} ${status?.text ?? ""}`}>
+                        {status?.label ?? fact.factStatus}
+                      </span>
+                    </div>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs ${status?.bg ?? ""} ${status?.text ?? ""}`}>
-                    {status?.label ?? fact.factStatus}
-                  </span>
+                  {historyOpen && (
+                    <div className="mt-2 border-t border-secondary/10 pt-2">
+                      {(historyById[fact.id] ?? []).length === 0 ? (
+                        <p className="text-xs text-muted">正在加载历史版本…</p>
+                      ) : (
+                        <ol className="space-y-1.5">
+                          {historyById[fact.id].map((version, index) => (
+                            <li key={version.id} className="flex items-center gap-2 text-xs">
+                              <span className="font-mono text-muted">v{historyById[fact.id].length - index}</span>
+                              <span className="text-content">{version.objectValue}</span>
+                              <span className="text-secondary">
+                                {version.status === "active" ? "当前版本" : version.status}
+                              </span>
+                              <span className="ml-auto font-mono text-muted">
+                                {version.createdAt.replace("T", " ").slice(0, 16)}
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </div>
+                  )}
                 </li>
               );
             })}

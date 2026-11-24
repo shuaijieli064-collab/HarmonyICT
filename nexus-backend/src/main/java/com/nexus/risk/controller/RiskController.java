@@ -60,4 +60,11 @@ public class RiskController {
     public Result<Map<String, Integer>> scan() {
         return Result.ok(Map.of("created", riskService.scanNow()));
     }
+
+    /** 近 N 天风险趋势（快照数据，缺失日期补 0；days 缺省 7，上限 30） */
+    @GetMapping("/trend")
+    public Result<java.util.List<com.nexus.risk.snapshot.RiskSnapshotService.TrendPoint>> trend(
+            @RequestParam(defaultValue = "7") int days) {
+        return Result.ok(riskService.trend(UserContext.get(), days));
+    }
 }

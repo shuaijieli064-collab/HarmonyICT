@@ -3,6 +3,7 @@ package com.nexus.dashboard.controller;
 import com.nexus.auth.UserContext;
 import com.nexus.common.result.Result;
 import com.nexus.dashboard.dto.DashboardSummaryResponse;
+import com.nexus.dashboard.dto.HealthScoreResponse;
 import com.nexus.dashboard.service.DashboardService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,5 +27,10 @@ public class DashboardController {
     @GetMapping("/summary")
     public Result<DashboardSummaryResponse> summary() {
         return Result.ok(dashboardService.summary(UserContext.get()));
+    }
+
+    @GetMapping("/health-score")
+    public Result<HealthScoreResponse> healthScore() {
+        return Result.ok(dashboardService.healthScore(UserContext.get()));
     }
 }

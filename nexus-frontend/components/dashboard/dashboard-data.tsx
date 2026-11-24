@@ -11,14 +11,16 @@ import TodayActions from "@/components/dashboard/today-actions";
 import { listEvents } from "@/services/world";
 import { listRisks } from "@/services/risks";
 import { listRuns } from "@/services/agent";
-import { getDashboardSummary } from "@/services/dashboard";
+import { getDashboardSummary, getHealthScore } from "@/services/dashboard";
 import { isLoggedIn } from "@/services/auth";
 import { USE_MOCK_FALLBACK } from "@/lib/constants";
 import { MOCK_ACTIONS, MOCK_GOALS } from "@/mock/dashboard";
+import HealthGauge from "@/components/dashboard/health-gauge";
 import type {
   AgentRun,
   AgentTask,
   EventItem,
+  HealthScore,
   Risk,
   RiskItem,
   StatusMetric,
@@ -87,6 +89,7 @@ type LoadState =
       events: WorldEvent[];
       risks: RiskItem[];
       runs: AgentTask[];
+      health: HealthScore | null;
     };
 
 export default function DashboardData() {
@@ -100,24 +103,29 @@ export default function DashboardData() {
         return { phase: "error", message: "请先登录后再查看驾驶舱数据" };
       }
       try {
-        // 概览指标走聚合接口（一次返回计数与风险分布），事件/风险/Agent 列表仍取各自契约接口
-        const [summary, risks, events, runs] = await Promise.all([
+        // 概览指标走聚合接口（一次返回计数与风险分布），事件/风险/Agent 列表仍取各自契约接口；
+        // 健康度独立接口失败不阻塞驾驶舱（降级为 null 隐藏仪表）
+        const [summary, risks, events, runs, healthResult] = await Promise.allSettled([
           getDashboardSummary(),
           listRisks({ status: "open", page: 1, pageSize: 5 }),
           listEvents({ page: 1, pageSize: 5 }),
           listRuns({ page: 1, pageSize: 3 }),
+          getHealthScore(),
         ]);
+        if (summary.status !== "fulfilled") throw summary.reason;
+        const health = healthResult.status === "fulfilled" ? healthResult.value : null;
         return {
           phase: "ready",
           metrics: toStatusMetric({
-            factTotal: summary.factTotal,
-            entityTotal: summary.entityTotal,
-            openRiskTotal: summary.openRiskTotal,
-            taskTotal: summary.taskTotal,
+            factTotal: summary.value.factTotal,
+            entityTotal: summary.value.entityTotal,
+            openRiskTotal: summary.value.openRiskTotal,
+            taskTotal: summary.value.taskTotal,
           }),
-          events: events.records.map(toTimelineEvent),
-          risks: risks.records.map(toRiskItem),
-          runs: runs.records.map(toAgentTask),
+          events: events.status === "fulfilled" ? events.value.records.map(toTimelineEvent) : [],
+          risks: risks.status === "fulfilled" ? risks.value.records.map(toRiskItem) : [],
+          runs: runs.status === "fulfilled" ? runs.value.records.map(toAgentTask) : [],
+          health,
         };
       } catch (err) {
         return {
@@ -177,6 +185,11 @@ export default function DashboardData() {
 
   return (
     <>
+      {state.health && (
+        <section aria-label="世界模型健康度">
+          <HealthGauge health={state.health} />
+        </section>
+      )}
       <section aria-label="当前状态">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {state.metrics.map((metric) => (

@@ -29,4 +29,11 @@ public interface RiskService {
      * @return 本轮新增风险数（两个引擎合计）
      */
     int scanNow();
+
+    /**
+     * 近 N 天风险趋势（快照数据，缺失日期补 0）。
+     *
+     * @param days 天数（缺省 7，上限 30）
+     */
+    java.util.List<com.nexus.risk.snapshot.RiskSnapshotService.TrendPoint> trend(Long userId, int days);
 }
