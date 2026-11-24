@@ -33,3 +33,8 @@ export function acknowledgeRisk(id: string) {
 export function resolveRisk(id: string) {
   return request<Risk>(`/api/v1/risks/${id}/resolve`, { method: "PUT" });
 }
+
+/** 手动触发一次全量风险扫描（演示用：避免等待 60s 定时周期），返回本轮新增风险数 */
+export function triggerRiskScan() {
+  return request<{ created: number }>("/api/v1/risks/scan", { method: "POST" });
+}

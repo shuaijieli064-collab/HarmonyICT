@@ -21,4 +21,12 @@ public interface RiskService {
 
     /** 解决风险：status → resolved；幂等返回成功 */
     RiskResponse resolve(Long userId, Long id);
+
+    /**
+     * 手动触发一次全量风险扫描（演示与联调：避免等待 60s 定时周期）。
+     * 红线不变：风险仍只由规则引擎产生，本方法只是同步触发既有扫描逻辑。
+     *
+     * @return 本轮新增风险数（两个引擎合计）
+     */
+    int scanNow();
 }

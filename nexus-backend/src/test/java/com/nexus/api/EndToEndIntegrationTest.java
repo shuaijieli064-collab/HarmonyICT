@@ -166,8 +166,8 @@ class EndToEndIntegrationTest {
     @Order(4)
     void step4_riskScanAndList() throws Exception {
         // 直接触发两类风险扫描（不依赖 60s 定时器）
-        riskRuleEngine.scan();
-        riskAnalysisPipelineService.scan();
+        riskRuleEngine.scanNow();
+        riskAnalysisPipelineService.scanNow();
         // 风险只能由规则产生，列表接口应可用且不报错
         mockMvc.perform(get("/api/v1/risks").header("Authorization", "Bearer " + tokenA))
                 .andExpect(status().isOk())
