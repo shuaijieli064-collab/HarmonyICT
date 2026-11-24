@@ -124,6 +124,9 @@ bash scripts/dev-stop.sh
 - [`docs/database-design.md`](docs/database-design.md) — 表结构
 - [`docs/design-system.md`](docs/design-system.md) — 视觉规范
 - [`docs/demo-script.md`](docs/demo-script.md) — 演示脚本
+- [`docs/user-manual.md`](docs/user-manual.md) — 用户手册
+- [`docs/ppt-outline.md`](docs/ppt-outline.md) — 答辩 PPT 大纲
+- [`docs/recording-script.md`](docs/recording-script.md) — 录屏脚本
 - [`docs/evidence/README.md`](docs/evidence/README.md) — 证据命名规范
 
 ## 许可证
