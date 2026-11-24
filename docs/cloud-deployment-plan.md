@@ -122,6 +122,7 @@ CodeArts Build 支持 GitHub 代码源。项目三人协作已固定在 GitHub P
 | `NEXUS_OBS_ENDPOINT/BUCKET/AK/SK` | OBS + IAM | AK/SK 最小权限 |
 | `NEXUS_AI_MAAS_BASE_URL/API_KEY/MODEL` | MaaS 控制台 | 模型名从「API调用」面板取 |
 | `NEXUS_AI_MAAS_COMPLETION_PATH`（新增） | 按控制台实际 URL | `/v1` 或 `/v2` |
+| `NEXUS_AI_MAAS_TEMPERATURE`（补充） | 默认 `0.1` | 可选，验收模板与 `application-prod.yml` 均已声明，原清单漏列，2026-11-24 补入 |
 | `NEXUS_AI_OCR_IAM_ENDPOINT/ENDPOINT/USERNAME/PASSWORD/DOMAIN_NAME/PROJECT_ID` | OCR + IAM | 专用最小权限用户 |
 | `NEXUS_CORS_ORIGINS`（新增） | EIP/域名 | 逗号分隔 |
 | `NEXT_PUBLIC_API_BASE_URL` | 前端构建期 | 后端公网地址 |
