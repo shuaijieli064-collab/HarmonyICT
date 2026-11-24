@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexus.ingestion.pipeline.ExtractionPipelineService;
 import com.nexus.risk.pipeline.RiskAnalysisPipelineService;
 import com.nexus.risk.rule.RiskRuleEngine;
+import com.nexus.risk.snapshot.RiskSnapshotService;
 import com.nexus.world.entity.WorldEvent;
 import com.nexus.world.entity.WorldFact;
 import com.nexus.world.entity.WorldSource;
@@ -73,6 +74,8 @@ class EndToEndIntegrationTest {
     @Autowired
     private RiskRuleEngine riskRuleEngine;
     @Autowired
+    private RiskSnapshotService riskSnapshotService;
+    @Autowired
     private WorldSourceMapper sourceMapper;
     @Autowired
     private WorldFactMapper factMapper;
@@ -83,6 +86,7 @@ class EndToEndIntegrationTest {
     private static Long userIdA;
     private static Long userIdB;
     private static Long sourceId;
+    private static Long factIdA;
     private static String tokenB;
 
     @Test
@@ -140,6 +144,7 @@ class EndToEndIntegrationTest {
                 .eq(WorldFact::getUserId, userIdA)
                 .eq(WorldFact::getSourceId, sourceId));
         assertTrue(facts.size() >= 4, "订阅样例应落库至少 4 条事实，实际 " + facts.size());
+        factIdA = facts.get(0).getId();
         assertTrue(facts.stream().anyMatch(f -> "budget_limit".equals(f.getPredicate())),
                 "B 的 budget_limit 谓词应落库");
         assertTrue(facts.stream().allMatch(f -> f.getConfidence() != null),
@@ -172,6 +177,10 @@ class EndToEndIntegrationTest {
         mockMvc.perform(get("/api/v1/risks").header("Authorization", "Bearer " + tokenA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
+        // A2 手动扫描端点（前端「立即扫描」按钮消费路径）：HTTP 层回归，返回本轮新增数
+        JsonNode scan = postJsonAuth("/api/v1/risks/scan", tokenA, "{}");
+        assertEquals(0, scan.path("code").asInt());
+        assertTrue(scan.path("data").path("created").asInt() >= 0);
     }
 
     @Test
@@ -188,6 +197,72 @@ class EndToEndIntegrationTest {
         var bFacts = factMapper.selectList(new LambdaQueryWrapper<WorldFact>()
                 .eq(WorldFact::getUserId, userIdB));
         assertTrue(bFacts.isEmpty());
+    }
+
+    @Test
+    @Order(6)
+    void step6_healthScore() throws Exception {
+        // 扫描已产生风险（step4），先落一份当日快照再取健康度，保证链路完整可复现
+        riskSnapshotService.snapshotForUser(userIdA);
+        JsonNode health = getJson("/api/v1/dashboard/health-score", tokenA);
+        assertEquals(0, health.path("code").asInt());
+        JsonNode data = health.path("data");
+        int score = data.path("score").asInt(-1);
+        assertTrue(score >= 0 && score <= 100, "健康分应在 0-100，实际 " + score);
+        assertFalse(data.path("level").asText().isBlank(), "level 不应为空");
+        assertEquals(3, data.path("dimensions").size(), "应有 freshness/risk/task 三个维度");
+        // 维度均不得超过各自满分（40/40/20），保证评分模型可解释
+        JsonNode dims = data.path("dimensions");
+        assertTrue(dims.get(0).path("score").asInt() <= dims.get(0).path("max").asInt());
+        assertTrue(dims.get(1).path("score").asInt() <= dims.get(1).path("max").asInt());
+        assertTrue(dims.get(2).path("score").asInt() <= dims.get(2).path("max").asInt());
+    }
+
+    @Test
+    @Order(7)
+    void step7_riskTrend() throws Exception {
+        JsonNode trend = getJson("/api/v1/risks/trend?days=14", tokenA);
+        assertEquals(0, trend.path("code").asInt());
+        JsonNode points = trend.path("data");
+        assertEquals(14, points.size(), "days=14 应补齐返回 14 个点（缺失日期补 0）");
+        // 末点即今天：当日快照在 step6 已落库，各计数非负即可
+        JsonNode today = points.get(13);
+        assertFalse(today.path("date").isMissingNode(), "末点应有 date");
+        assertTrue(today.path("openCount").asInt() >= 0);
+        assertTrue(today.path("highCount").asInt() >= 0);
+        // B 用户无快照时趋势应全 0 而非报错（隔离 + 缺失补 0 的兜底行为）
+        JsonNode trendB = getJson("/api/v1/risks/trend", tokenB);
+        assertEquals(0, trendB.path("code").asInt());
+        assertEquals(7, trendB.path("data").size(), "缺省 days=7 应返回 7 个点");
+        assertEquals(0, trendB.path("data").get(6).path("openCount").asInt(),
+                "B 无风险数据，当日 openCount 应为 0");
+    }
+
+    @Test
+    @Order(8)
+    void step8_factHistoryAndIsolation() throws Exception {
+        // A 查自己事实的历史：至少包含当前版本（同链 1+ 条，倒序）
+        JsonNode history = getJson("/api/v1/facts/" + factIdA + "/history", tokenA);
+        assertEquals(0, history.path("code").asInt());
+        JsonNode versions = history.path("data");
+        assertTrue(versions.isArray() && versions.size() >= 1, "历史链至少 1 条版本");
+        assertEquals(factIdA, versions.get(0).path("id").asLong(), "倒序首条应为当前版本");
+        assertFalse(versions.get(0).path("predicate").asText().isBlank());
+
+        // 隔离：B 请求 A 的事实历史必须拒绝（不泄露版本链）
+        MvcResult result = mockMvc.perform(get("/api/v1/facts/" + factIdA + "/history")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andReturn();
+        int code = objectMapper.readTree(result.getResponse().getContentAsString()).path("code").asInt();
+        assertTrue(code != 0, "跨用户读事实历史应失败，实际 code=" + code);
+    }
+
+    /** 带 token 的 GET 并解析 Result 信封。 */
+    private JsonNode getJson(String url, String token) throws Exception {
+        MvcResult result = mockMvc.perform(get(url).header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString());
     }
 
     /** 轮询来源状态至终态（上传触发的 @Async 抽取需等待），返回最后观察到的状态。 */
@@ -209,6 +284,17 @@ class EndToEndIntegrationTest {
 
     private JsonNode postJson(String url, String body) throws Exception {
         MvcResult result = mockMvc.perform(post(url)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString());
+    }
+
+    /** 带 token 的 POST（需要认证的业务端点用）。 */
+    private JsonNode postJsonAuth(String url, String token, String body) throws Exception {
+        MvcResult result = mockMvc.perform(post(url)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isOk())
