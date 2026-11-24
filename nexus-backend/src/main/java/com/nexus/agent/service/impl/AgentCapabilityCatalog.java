@@ -43,6 +43,8 @@ public class AgentCapabilityCatalog {
         register("read_task", "L0", "task", "读取当前待办列表");
         register("explain_risk", "L0", "risk", "解释已有风险的触发规则与证据来源（不生成新结论）");
         register("suggest_action", "L0", "suggestion", "基于已有风险给出建议文案，不执行任何写操作");
+        // 体量扩充第二波新增：与 com.nexus.ai 的 AgentToolRegistry 同步（L2 日程创建，须授权）
+        register("create_event", "L2", "event", "创建日程/事件（课程、会议、评审等），须用户授权后执行");
     }
 
     private void register(String actionType, String level, String targetType, String description) {

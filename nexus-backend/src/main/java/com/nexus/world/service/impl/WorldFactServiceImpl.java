@@ -115,7 +115,10 @@ public class WorldFactServiceImpl implements WorldFactService {
         next.setValueType(old.getValueType());
         next.setUnit(old.getUnit());
         next.setNormalizedValue(old.getNormalizedValue());
-        next.setSourceId(old.getSourceId());
+        // sourceId 置空：新事实是用户/Agent 修正版而非原始抽取结果（人工语义），
+        // 同时规避 uk_wf_src_fact 唯一索引——旧行 (user,source,subject,predicate) 在同事务仍占位，
+        // 新行继承 sourceId 会立即撞索引（H2 立即检查、PG 同样冲突），schema.sql 注释的人工语义正好豁免
+        next.setSourceId(null);
         next.setConfidence(old.getConfidence());
         next.setValidFrom(now);
         next.setStatus("active");

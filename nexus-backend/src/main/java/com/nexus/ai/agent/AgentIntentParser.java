@@ -47,9 +47,9 @@ public class AgentIntentParser {
         String requestedValue = extractRequestedValue(text, targetDate);
 
         FactSnapshot target = switch (type) {
-            case UPDATE_FACT -> locateFact(text, safeFacts);
+            case UPDATE_FACT -> locateFact(text, safeFacts, requestedValue);
             case CREATE_TASK -> nearestDueFact(text, safeFacts);
-            case CREATE_EVENT -> locateFact(text, safeFacts);
+            case CREATE_EVENT -> locateFact(text, safeFacts, null);
             default -> null;
         };
         return new ParsedIntent(type, target, targetDate, requestedValue);
@@ -71,7 +71,7 @@ public class AgentIntentParser {
         return IntentType.SUMMARY;
     }
 
-    private FactSnapshot locateFact(String text, List<FactSnapshot> facts) {
+    private FactSnapshot locateFact(String text, List<FactSnapshot> facts, String requestedValue) {
         List<FactSnapshot> candidates = new ArrayList<>();
         for (FactSnapshot fact : facts) {
             if (!matchesPredicateHint(text, fact.predicate())) {
@@ -85,13 +85,40 @@ public class AgentIntentParser {
             return candidates.get(0);
         }
         if (!candidates.isEmpty()) {
-            return null;
+            // 多候选时按「新值语义」消歧：数值→价格类谓词；日期→截止/到期类取最近到期；仍不唯一则放弃
+            return disambiguate(candidates, requestedValue);
         }
 
         List<FactSnapshot> byEntity = facts.stream()
                 .filter(fact -> matchesEntity(text, fact.subjectName()))
                 .toList();
         return byEntity.size() == 1 ? byEntity.get(0) : null;
+    }
+
+    /** 多候选消歧：新值是数字选价格类，是日期选最近到期的截止类；无法判定返回 null（宁缺勿错）。 */
+    private FactSnapshot disambiguate(List<FactSnapshot> candidates, String requestedValue) {
+        if (requestedValue == null || requestedValue.isBlank()) {
+            return null;
+        }
+        if (requestedValue.matches("\\d+(\\.\\d+)?")) {
+            return candidates.stream()
+                    .filter(fact -> fact.predicate() != null && fact.predicate().contains("price"))
+                    .findFirst()
+                    .orElse(null);
+        }
+        Optional<Instant> requestedDate = RiskEvaluationContext.parseInstant(requestedValue);
+        if (requestedDate.isPresent()) {
+            // 截止/到期类事实：validUntil 优先，否则解析 objectValue；取最近到期者
+            return candidates.stream()
+                    .filter(fact -> fact.validUntil() != null
+                            || RiskEvaluationContext.parseInstant(fact.objectValue()).isPresent())
+                    .min(java.util.Comparator.comparing(
+                            fact -> fact.validUntil() != null
+                                    ? fact.validUntil()
+                                    : RiskEvaluationContext.parseInstant(fact.objectValue()).orElseThrow()))
+                    .orElse(null);
+        }
+        return null;
     }
 
     private FactSnapshot nearestDueFact(String text, List<FactSnapshot> facts) {

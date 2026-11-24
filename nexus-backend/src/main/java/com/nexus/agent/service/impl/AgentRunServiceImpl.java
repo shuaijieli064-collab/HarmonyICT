@@ -133,8 +133,9 @@ public class AgentRunServiceImpl implements AgentRunService {
         Instant now = Instant.now();
         boolean approve = Boolean.TRUE.equals(request.approve());
         for (AgentActionLog target : targets) {
-            if (!"L2".equals(target.getLevel())) {
-                throw new BizException(ResultCode.PARAM_INVALID, "仅 L2 操作需要授权");
+            if ("L0".equals(target.getLevel())) {
+                // L0 只读在编排期已直接执行成功，无需也不应走授权
+                throw new BizException(ResultCode.PARAM_INVALID, "L0 只读操作无需授权");
             }
             if (!"pending".equals(target.getResult())) {
                 // 已处理过的日志幂等返回，不重复执行
@@ -149,6 +150,7 @@ public class AgentRunServiceImpl implements AgentRunService {
             target.setUpdatedAt(now);
             if (approve) {
                 // 授权留痕：authorized=true 表示用户放行该写操作
+                // L1（执行前展示确认）与 L2（须授权）统一走本入口：确认/授权即执行
                 target.setAuthorized(true);
             } else {
                 target.setResult("denied");
