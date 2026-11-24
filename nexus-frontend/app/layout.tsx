@@ -7,6 +7,13 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "NEXUS · 个人资料智能管家",
   description: "上传资料，AI 抽取结构化事实，构建个人世界模型，主动发现风险，授权生成行动。",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/icon.svg" }],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
