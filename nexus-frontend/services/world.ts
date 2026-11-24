@@ -4,7 +4,7 @@
  */
 
 import { request } from "@/lib/http";
-import type { Entity, EventItem, Fact, PageResult } from "@/types";
+import type { Entity, EventItem, Fact, PageResult, WorldGraphResponse } from "@/types";
 
 export interface ListOptions {
   page?: number;
@@ -28,6 +28,11 @@ export function listEvents(
   options: ListOptions & { eventType?: string; entityId?: string } = {}
 ) {
   return request<PageResult<EventItem>>("/api/v1/events", { query: options });
+}
+
+/** 世界模型图谱（体量扩充第二波）：节点=实体/事实/事件/未解决风险，边含同源与风险关联 */
+export function getWorldGraph() {
+  return request<WorldGraphResponse>("/api/v1/world/graph");
 }
 
 /** 创建实体（契约 5.1）：实体重名返回 code=20104，UI 层用
