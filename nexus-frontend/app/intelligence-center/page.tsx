@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Radar } from "lucide-react";
 import IntelPanel from "@/components/intel/intel-panel";
+import RiskTrend from "@/components/risk/risk-trend";
+import RiskList from "@/components/risk/risk-list";
 
 export const metadata: Metadata = { title: "情报中心 · NEXUS" };
 
-/** 情报中心页：风险 / 事件 / Agent 执行的统一情报流（GET /api/v1/intel 真实接口）。 */
+/** 情报中心页：风险趋势（快照折线）+ 风险列表（依据/派生待办/手动扫描）+ 统一情报流。 */
 export default function IntelligenceCenterPage() {
   return (
     <div className="space-y-6">
@@ -15,6 +17,8 @@ export default function IntelligenceCenterPage() {
           <p className="mt-1 text-sm text-secondary">风险、事件与 Agent 动作的统一情报流</p>
         </div>
       </header>
+      <RiskTrend />
+      <RiskList />
       <IntelPanel />
     </div>
   );

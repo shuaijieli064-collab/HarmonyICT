@@ -35,6 +35,11 @@ export function getWorldGraph() {
   return request<WorldGraphResponse>("/api/v1/world/graph");
 }
 
+/** 事实历史版本（扩展 B 组）：链式失效保留的全部版本按时间倒序 */
+export function getFactHistory(id: string) {
+  return request<Fact[]>(`/api/v1/facts/${id}/history`);
+}
+
 /** 创建实体（契约 5.1）：实体重名返回 code=20104，UI 层用
  * `err instanceof ApiError && err.code === 20104` 区分提示「已存在同名实体」。
  */

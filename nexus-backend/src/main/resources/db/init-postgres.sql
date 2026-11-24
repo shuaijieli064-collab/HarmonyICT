@@ -188,3 +188,17 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS idx_nt_user_read ON notifications (user_id, read_at);
 CREATE INDEX IF NOT EXISTS idx_nt_user_created ON notifications (user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_nt_ref ON notifications (ref_type, ref_id);
+
+-- 风险趋势快照表（扩展 B 组）：每日记录 open 风险等级分布，(user_id, snapshot_date) 唯一
+CREATE TABLE IF NOT EXISTS risk_snapshots (
+    id            BIGINT PRIMARY KEY,
+    user_id       BIGINT       NOT NULL REFERENCES users(id),
+    snapshot_date DATE         NOT NULL,
+    open_count    INT          NOT NULL DEFAULT 0,
+    high_count    INT          NOT NULL DEFAULT 0,
+    medium_count  INT          NOT NULL DEFAULT 0,
+    low_count     INT          NOT NULL DEFAULT 0,
+    created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_risk_snapshot UNIQUE (user_id, snapshot_date)
+);
+CREATE INDEX IF NOT EXISTS idx_rs_user_date ON risk_snapshots (user_id, snapshot_date);

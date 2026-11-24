@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.nexus.agent.entity.AgentRun;
 import com.nexus.agent.mapper.AgentRunMapper;
 import com.nexus.dashboard.dto.DashboardSummaryResponse;
+import com.nexus.dashboard.dto.HealthScoreResponse;
 import com.nexus.dashboard.service.DashboardService;
 import com.nexus.notification.entity.Notification;
 import com.nexus.notification.mapper.NotificationMapper;
@@ -120,5 +121,76 @@ public class DashboardServiceImpl implements DashboardService {
         return counts.entrySet().stream()
                 .map(entry -> new DashboardSummaryResponse.RiskLevelCount(entry.getKey(), entry.getValue()))
                 .toList();
+    }
+
+    /** 健康度评分：数据新鲜度 40 + 风险状况 40 + 任务完成 20（纯规则可解释） */
+    @Override
+    public HealthScoreResponse healthScore(Long userId) {
+        // 1) 数据新鲜度：最近一条事实距今天数，7 天内满分，30 天外 0 分，之间线性衰减
+        List<WorldFact> facts = factMapper.selectList(new LambdaQueryWrapper<WorldFact>()
+                .eq(WorldFact::getUserId, userId)
+                .orderByDesc(WorldFact::getCreatedAt)
+                .last("LIMIT 1"));
+        int freshnessScore;
+        String freshnessDetail;
+        if (facts.isEmpty()) {
+            freshnessScore = 0;
+            freshnessDetail = "尚无事实数据，上传资料后开始积累";
+        } else {
+            long days = java.time.Duration.between(facts.get(0).getCreatedAt(), Instant.now()).toDays();
+            if (days <= 7) {
+                freshnessScore = 40;
+                freshnessDetail = "最近 " + days + " 天内有新事实沉淀";
+            } else if (days >= 30) {
+                freshnessScore = 0;
+                freshnessDetail = "最近一条事实已 " + days + " 天，数据可能过时";
+            } else {
+                freshnessScore = (int) Math.round(40.0 * (30 - days) / 23);
+                freshnessDetail = "最近一条事实距 " + days + " 天，建议补充新资料";
+            }
+        }
+
+        // 2) 风险状况：无未解决满分；high 扣 10 / medium 扣 5 / low 扣 2
+        List<WorldRisk> unresolved = riskMapper.selectList(new LambdaQueryWrapper<WorldRisk>()
+                .eq(WorldRisk::getUserId, userId)
+                .ne(WorldRisk::getStatus, "resolved"));
+        int penalty = 0;
+        int high = 0;
+        int medium = 0;
+        int low = 0;
+        for (WorldRisk risk : unresolved) {
+            switch (risk.getLevel()) {
+                case "high" -> { penalty += 10; high++; }
+                case "medium" -> { penalty += 5; medium++; }
+                default -> { penalty += 2; low++; }
+            }
+        }
+        int riskScore = Math.max(0, 40 - penalty);
+        String riskDetail = unresolved.isEmpty()
+                ? "无未解决风险"
+                : "未解决风险 " + unresolved.size() + " 条（高 " + high + " / 中 " + medium + " / 低 " + low + "）";
+
+        // 3) 任务完成：近 30 天创建的任务 done 占比（无任务给一半基准分，避免空数据惩罚）
+        Instant since = Instant.now().minus(30, java.time.temporal.ChronoUnit.DAYS);
+        List<Task> recentTasks = taskMapper.selectList(new LambdaQueryWrapper<Task>()
+                .eq(Task::getUserId, userId)
+                .ge(Task::getCreatedAt, since));
+        int taskScore;
+        String taskDetail;
+        if (recentTasks.isEmpty()) {
+            taskScore = 10;
+            taskDetail = "近 30 天无任务记录";
+        } else {
+            long done = recentTasks.stream().filter(task -> "done".equals(task.getStatus())).count();
+            taskScore = (int) Math.round(20.0 * done / recentTasks.size());
+            taskDetail = "近 30 天任务完成 " + done + "/" + recentTasks.size();
+        }
+
+        int score = freshnessScore + riskScore + taskScore;
+        String level = score >= 85 ? "excellent" : score >= 70 ? "good" : score >= 50 ? "attention" : "critical";
+        return new HealthScoreResponse(score, level, List.of(
+                new HealthScoreResponse.Dimension("freshness", "数据新鲜度", freshnessScore, 40, freshnessDetail),
+                new HealthScoreResponse.Dimension("risk", "风险状况", riskScore, 40, riskDetail),
+                new HealthScoreResponse.Dimension("task", "任务完成", taskScore, 20, taskDetail)));
     }
 }
