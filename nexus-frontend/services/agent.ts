@@ -5,7 +5,7 @@
  */
 
 import { request } from "@/lib/http";
-import type { AgentRun, PageResult, RunDetail } from "@/types";
+import type { AgentActionLog, AgentRun, PageResult, RunDetail } from "@/types";
 
 export interface ListRunsOptions {
   page?: number;
@@ -21,6 +21,16 @@ export function listRuns(options: ListRunsOptions = {}) {
 /** 执行详情（契约 8：含 summary 与操作日志列表） */
 export function getRunDetail(id: string) {
   return request<RunDetail>(`/api/v1/agent/runs/${id}`);
+}
+
+/** V3 执行日志分页查询（第②线 GET /{id}/logs，供 Agent Center 审计时间线）。
+ * 字段与 run 详情内 logs 一致（含 audit 摘要）；level/result 过滤可选。
+ * 只读接口：不触发执行、不改变 run 状态。 */
+export function listRunLogs(
+  id: string,
+  options: { level?: string; result?: string; page?: number; pageSize?: number } = {}
+) {
+  return request<PageResult<AgentActionLog>>(`/api/v1/agent/runs/${id}/logs`, { query: options });
 }
 
 /** 发起执行（契约 8） */

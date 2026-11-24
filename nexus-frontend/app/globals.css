@@ -70,6 +70,15 @@
   --text-muted: #a1a1aa;
   --text-inverse: #ffffff;
 
+  /* 强调与语义色：浅色背景需更深的变体保证对比度（dark 原值在白磨砂上偏淡） */
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-secondary: #9333ea;
+  --success: #059669;
+  --warning: #b45309;
+  --danger: #dc2626;
+  --info: #2563eb;
+
   --accent-glow: rgba(99, 102, 241, 0.25);
 
   --border-subtle: rgba(0, 0, 0, 0.06);

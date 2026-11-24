@@ -218,7 +218,22 @@ export type AgentLogLevel = "L0" | "L1" | "L2";
 /** Agent 操作日志结果（后端 DDL chk_log_result） */
 export type AgentLogResult = "pending" | "success" | "failure" | "denied";
 
-/** Agent 操作日志（契约 8；payload 为 JSON 字符串，展示前需 JSON.parse） */
+/** Agent 审计摘要（第②线 V3 新增 AgentAuditTrail，随 payload 的 audit 段落库、查询时解析）。
+ * 字段以 v3/agent 的 AgentAuditTrail.java 为准，前端不自行造字段、不改 api-spec 主文档。 */
+export interface AgentAuditTrail {
+  action: string | null;
+  authorizedBy: string | null;
+  authorizedAt: string | null;
+  decision: "approved" | "denied" | null;
+  changedField: string | null;
+  beforeValue: string | null;
+  afterValue: string | null;
+  failureReason: string | null;
+  executionSummary: string | null;
+}
+
+/** Agent 操作日志（契约 8；payload 为 JSON 字符串，展示前需 JSON.parse）
+ * V3：audit 为后端从 payload.audit 解析出的结构化审计摘要，旧数据可能为 null。 */
 export interface AgentActionLog {
   id: string;
   actionType: string;
@@ -229,6 +244,7 @@ export interface AgentActionLog {
   result: AgentLogResult;
   authorized: boolean;
   createdAt: string;
+  audit?: AgentAuditTrail | null;
 }
 
 /** Agent 执行详情（契约 8：run 本体 + 操作日志列表） */

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createRun, executeRun, authorizeRun, getRunDetail, listRuns } from "@/services/agent";
 import { listTasks } from "@/services/tasks";
+import AuditTimeline from "@/components/agent/audit-timeline";
 import { useIsLoggedIn } from "@/hooks/use-auth";
 import { FACT_STATUS_MAP } from "@/lib/constants";
 import type { AgentActionLog, AgentRun, Fact, RunDetail } from "@/types";
@@ -59,6 +60,8 @@ export default function RunsPanel() {
   const [notice, setNotice] = useState<string | null>(null);
   /** L2 授权二次确认：处于确认态的日志 id（对齐答辩脚本的显式授权交互） */
   const [confirmingLogId, setConfirmingLogId] = useState<string | null>(null);
+  /** 审计时间线刷新版本号：授权/刷新执行详情后 +1，触发时间线重新拉取分页接口 */
+  const [auditRefreshKey, setAuditRefreshKey] = useState(0);
 
   /** 纯数据拉取（不含 setState），供事件处理器与 effect 复用 */
   const fetchRuns = useCallback(async (): Promise<AgentRun[]> => {
@@ -128,6 +131,7 @@ export default function RunsPanel() {
     try {
       await executeRun(runId);
       setDetail(await fetchRunDetail(runId));
+      setAuditRefreshKey((key) => key + 1);
       setNotice("编排已触发（异步执行），稍候刷新查看日志与待授权操作");
     } catch (err) {
       showError(err, "触发编排失败");
@@ -145,6 +149,7 @@ export default function RunsPanel() {
       await authorizeRun(runId, { logIds, approve });
       const [nextDetail, tasks] = await Promise.all([fetchRunDetail(runId), listTasks({ page: 1, pageSize: 20 })]);
       setDetail(nextDetail);
+      setAuditRefreshKey((key) => key + 1);
       setNotice(
         approve
           ? `授权成功，动作已真实执行；后端任务总数 ${tasks.total}，列表已同步`
@@ -166,19 +171,19 @@ export default function RunsPanel() {
         <label htmlFor="intent" className="mb-2 block text-sm font-semibold text-content">
           发起 Agent 执行
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <input
             id="intent"
             value={intent}
             onChange={(e) => setIntent(e.target.value)}
             placeholder="例如：整理本月资产变动"
-            className="flex-1 rounded-lg border border-secondary/20 bg-base px-3 py-2 text-sm text-content outline-none focus:border-primary"
+            className="min-w-0 flex-1 rounded-lg border border-secondary/20 bg-base px-3 py-2 text-sm text-content outline-none focus:border-primary"
           />
           <button
             type="button"
             onClick={() => void onCreateRun()}
             disabled={busy || !intent.trim()}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+            className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
             创建
           </button>
@@ -201,7 +206,7 @@ export default function RunsPanel() {
             return (
               <div
                 key={run.id}
-                className={`flex items-center justify-between gap-3 rounded-xl border p-4 ${
+                className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 ${
                   isActive ? "border-primary/40 bg-card" : "border-secondary/10 bg-card"
                 }`}
               >
@@ -256,7 +261,10 @@ export default function RunsPanel() {
                 setError(null);
                 setNotice(null);
                 fetchRunDetail(detail.run.id)
-                  .then(setDetail)
+                  .then((next) => {
+                    setDetail(next);
+                    setAuditRefreshKey((key) => key + 1);
+                  })
                   .catch((err: unknown) => showError(err, "刷新失败"));
               }}
               disabled={busy}
@@ -359,6 +367,13 @@ export default function RunsPanel() {
               );
             })
           )}
+
+          {/* V3 跨界接线：审计时间线走第②线 GET /{id}/logs 分页接口（只读），
+              与上方 run 详情内 logs 互补：此处展示授权人/时间/变更前后/执行摘要等审计字段 */}
+          <div className="border-t border-secondary/10 pt-4">
+            <h3 className="mb-3 text-sm font-semibold text-content">审计时间线</h3>
+            <AuditTimeline runId={detail.run.id} refreshKey={auditRefreshKey} />
+          </div>
         </section>
       )}
     </div>
