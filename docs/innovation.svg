@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" font-family="system-ui, 'Microsoft YaHei', sans-serif">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#f0fdfa"/>
+    </linearGradient>
+    <linearGradient id="hdr2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0f766e"/><stop offset="0.5" stop-color="#1d4ed8"/><stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+    <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#0f766e"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="720" fill="url(#bg2)"/>
+  <rect x="0" y="0" width="1200" height="72" fill="url(#hdr2)"/>
+  <text x="36" y="40" fill="#fff" font-size="24" font-weight="700">NEXUS · 四大创新点</text>
+  <text x="1164" y="39" fill="#ccfbf1" font-size="13" text-anchor="end">V2 · 2026-11-24</text>
+  <text x="36" y="60" fill="#99f6e4" font-size="12">所有创新围绕赛题评分点：华为云产品价值 + 可演示的完整闭环</text>
+
+  <!-- 四个创新卡片 -->
+  <g>
+    <!-- 1 -->
+    <rect x="40" y="104" width="540" height="256" rx="16" fill="#fff" stroke="#99f6e4" stroke-width="1.5"/>
+    <circle cx="82" cy="146" r="22" fill="#0f766e"/>
+    <text x="82" y="153" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">1</text>
+    <text x="118" y="153" fill="#0f766e" font-size="17" font-weight="700">可溯源的个人世界模型</text>
+    <text x="64" y="196" fill="#334155" font-size="13">资料不是一次性问答，而是抽取为「实体—事实—来源」三元组落库。</text>
+    <text x="64" y="220" fill="#334155" font-size="13">每条事实带置信度与证据，图谱直观呈现，回答「我是怎么知道这件事的」。</text>
+    <g font-size="11">
+      <rect x="64" y="240" width="220" height="30" rx="8" fill="#f0fdfa" stroke="#5eead4"/><text x="174" y="260" fill="#0f766e" text-anchor="middle">OBS 原件 + sourceId 关联</text>
+      <rect x="296" y="240" width="240" height="30" rx="8" fill="#f0fdfa" stroke="#5eead4"/><text x="416" y="260" fill="#0f766e" text-anchor="middle">PostgreSQL 三元组持久化</text>
+      <rect x="64" y="280" width="472" height="30" rx="8" fill="#f0fdfa" stroke="#5eead4"/><text x="300" y="300" fill="#0f766e" text-anchor="middle">ECharts 力导向图谱 + 时间线，事实可点开看来源</text>
+    </g>
+    <text x="64" y="340" fill="#64748b" font-size="11">价值：让 AI 输出从「不可信的黑箱」变成「可核验的事实网络」</text>
+
+    <!-- 2 -->
+    <rect x="620" y="104" width="540" height="256" rx="16" fill="#fff" stroke="#bfdbfe" stroke-width="1.5"/>
+    <circle cx="662" cy="146" r="22" fill="#1d4ed8"/>
+    <text x="662" y="153" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">2</text>
+    <text x="698" y="153" fill="#1d4ed8" font-size="17" font-weight="700">规则定风险，模型只解释</text>
+    <text x="644" y="196" fill="#334155" font-size="13">风险结论只由规则引擎产生（期限 / 冲突 / 到期 / 预算 4 类），</text>
+    <text x="644" y="220" fill="#334155" font-size="13">大模型仅做理解与解释，不输出随机判断。风险卡片直接标出触发规则与依据事实。</text>
+    <g font-size="11">
+      <rect x="644" y="240" width="220" height="30" rx="8" fill="#eff6ff" stroke="#93c5fd"/><text x="754" y="260" fill="#1d4ed8" text-anchor="middle">规则 + 证据快照</text>
+      <rect x="876" y="240" width="240" height="30" rx="8" fill="#eff6ff" stroke="#93c5fd"/><text x="996" y="260" fill="#1d4ed8" text-anchor="middle">高 / 中 / 低 语义色全站统一</text>
+      <rect x="644" y="280" width="472" height="30" rx="8" fill="#eff6ff" stroke="#93c5fd"/><text x="880" y="300" fill="#1d4ed8" text-anchor="middle">Redis 缓存风险状态 · 确认 / 解决闭环</text>
+    </g>
+    <text x="644" y="340" fill="#64748b" font-size="11">价值：满足「可追溯 + 规则支撑智能」原则，风险不是 LLM 幻觉</text>
+
+    <!-- 3 -->
+    <rect x="40" y="384" width="540" height="256" rx="16" fill="#fff" stroke="#c4b5fd" stroke-width="1.5"/>
+    <circle cx="82" cy="426" r="22" fill="#4338ca"/>
+    <text x="82" y="433" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">3</text>
+    <text x="118" y="433" fill="#4338ca" font-size="17" font-weight="700">L0–L2 授权边界下的 Agent</text>
+    <text x="64" y="476" fill="#334155" font-size="13">Agent 只做只读 / 建议 / 内部操作，L2 动作必须用户显式二次确认，</text>
+    <text x="64" y="500" fill="#334155" font-size="13">确认后才真实执行并写入任务/事实；全程无支付、无越权 user_id。</text>
+    <g font-size="11">
+      <rect x="64" y="520" width="220" height="30" rx="8" fill="#f5f3ff" stroke="#c4b5fd"/><text x="174" y="540" fill="#4338ca" text-anchor="middle">执行日志可查询</text>
+      <rect x="296" y="520" width="240" height="30" rx="8" fill="#f5f3ff" stroke="#c4b5fd"/><text x="416" y="540" fill="#4338ca" text-anchor="middle">授权人 / 时间 / 动作审计</text>
+      <rect x="64" y="560" width="472" height="30" rx="8" fill="#f5f3ff" stroke="#c4b5fd"/><text x="300" y="580" fill="#4338ca" text-anchor="middle">前端二次确认条：明确告知「将真实执行并写入任务/事实」</text>
+    </g>
+    <text x="64" y="620" fill="#64748b" font-size="11">价值：智能体能力可控可审计，适配竞赛对「授权边界」的硬要求</text>
+
+    <!-- 4 -->
+    <rect x="620" y="384" width="540" height="256" rx="16" fill="#fff" stroke="#fed7aa" stroke-width="1.5"/>
+    <circle cx="662" cy="426" r="22" fill="#c2410c"/>
+    <text x="662" y="433" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">4</text>
+    <text x="698" y="433" fill="#c2410c" font-size="17" font-weight="700">华为云产品贯穿真实业务闭环</text>
+    <text x="644" y="476" fill="#334155" font-size="13">CodeArts 代码智能体全流程 + Skills 开通 RDS / Redis +</text>
+    <text x="644" y="500" fill="#334155" font-size="13">OBS 存原件 + MaaS/OCR 抽取 + ECS 公网部署，每一步有截图/录屏证据。</text>
+    <g font-size="11">
+      <rect x="644" y="520" width="220" height="30" rx="8" fill="#fff7ed" stroke="#fdba74"/><text x="754" y="540" fill="#c2410c" text-anchor="middle">想法到应用全过程</text>
+      <rect x="876" y="520" width="240" height="30" rx="8" fill="#fff7ed" stroke="#fdba74"/><text x="996" y="540" fill="#c2410c" text-anchor="middle">docs/evidence/cloud/ 证据</text>
+      <rect x="644" y="560" width="472" height="30" rx="8" fill="#fff7ed" stroke="#fdba74"/><text x="880" y="580" fill="#c2410c" text-anchor="middle">本地 H2+mock 可跑 · 生产切 RDS+真实 MaaS 无需改代码</text>
+    </g>
+    <text x="644" y="620" fill="#64748b" font-size="11">价值：直接命中赛题「华为云产品使用价值」评分点，而非堆功能数量</text>
+  </g>
+
+  <!-- 底部闭环 -->
+  <rect x="40" y="664" width="1120" height="40" rx="10" fill="#0f172a"/>
+  <text x="600" y="690" fill="#e2e8f0" font-size="13" text-anchor="middle">上传资料 → OBS → OCR/MaaS 抽取 → RDS 世界模型 → 规则风险 → 用户授权 → Agent 执行 → 结果回填 → 世界模型更新</text>
+</svg>
