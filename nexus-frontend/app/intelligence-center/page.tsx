@@ -11,7 +11,7 @@ export default function IntelligenceCenterPage() {
       <header className="flex items-center gap-2.5">
         <Radar size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
         <div>
-          <h1 className="text-xl font-bold text-content">情报中心</h1>
+          <h1 className="text-2xl font-bold tracking-wide text-content">情报中心</h1>
           <p className="mt-1 text-sm text-secondary">风险、事件与 Agent 动作的统一情报流</p>
         </div>
       </header>

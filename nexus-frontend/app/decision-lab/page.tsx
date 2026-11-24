@@ -12,7 +12,7 @@ export default function DecisionLabPage() {
       <header className="flex items-center gap-2.5">
         <FlaskConical size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
         <div>
-          <h1 className="text-xl font-bold text-content">决策实验室</h1>
+          <h1 className="text-2xl font-bold tracking-wide text-content">决策实验室</h1>
             <p className="mt-1 text-sm text-secondary">
             洞察引擎族概览 · 未来 30 天投影 · 假设推演沙盘（只读，不产生真实风险）
           </p>

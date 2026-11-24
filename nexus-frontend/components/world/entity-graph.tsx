@@ -94,6 +94,7 @@ export default function EntityGraph() {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<EChartsType | null>(null);
   const [state, setState] = useState<LoadState>({ phase: "loading" });
+  const [ready, setReady] = useState(false);
 
   const fetchGraphData = useCallback(async (): Promise<LoadState> => {
     const graph = await getWorldGraph();
@@ -157,6 +158,9 @@ export default function EntityGraph() {
       });
       resizeHandler = () => chart.resize();
       window.addEventListener("resize", resizeHandler);
+      // force 布局前 450ms 节点从随机位置展开，遮罩淡入避免"炸开"观感
+      const revealTimer = setTimeout(() => setReady(true), 450);
+      return () => clearTimeout(revealTimer);
     })();
 
     return () => {
@@ -211,7 +215,9 @@ export default function EntityGraph() {
   return (
     <div
       ref={containerRef}
-      className="h-96 rounded-xl border border-secondary/10 bg-card"
+      className={`h-80 rounded-xl border border-secondary/10 bg-card transition-opacity duration-500 sm:h-96 ${
+        ready ? "opacity-100" : "opacity-0"
+      }`}
       aria-label="实体关系图谱"
       role="img"
     />

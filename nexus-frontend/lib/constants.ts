@@ -19,18 +19,18 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
 /** 通知类别 → 展示文案与配色（全站统一语义） */
 export const NOTIFICATION_CATEGORY_MAP = {
-  risk: { label: "风险提醒", text: "text-warning", bg: "bg-warning/15" },
-  agent: { label: "Agent", text: "text-primary", bg: "bg-primary/15" },
-  system: { label: "系统", text: "text-secondary", bg: "bg-secondary/15" },
+  risk: { label: "风险提醒", text: "text-warning", bg: "bg-warning/20" },
+  agent: { label: "Agent", text: "text-primary", bg: "bg-primary/20" },
+  system: { label: "系统", text: "text-secondary", bg: "bg-secondary/20" },
 } as const;
 
-/** ECharts 统一配色顺序（docs/design-system.md 5.5） */
+/** ECharts 统一配色（与 accent 同源 5 色，饱和度 65-75% 统一曲线；docs/design-system.md 5.5） */
 export const CHART_COLORS: readonly string[] = [
-  "#22D3EE",
-  "#A78BFA",
-  "#34D399",
-  "#FBBF24",
-  "#F87171",
+  "#6366f1",
+  "#a855f7",
+  "#60a5fa",
+  "#34d399",
+  "#fbbf24",
 ] as const;
 
 /** ECharts 公共样式：坐标轴文字、分割线颜色 */
@@ -39,27 +39,27 @@ export const CHART_BASE = {
   splitLine: { lineStyle: { color: "rgba(148,163,184,0.15)" } },
 } as const;
 
-/** 风险等级 → 展示文案与配色类名（全站统一语义） */
+/** 风险等级 → 展示文案与配色类名（全站统一语义；bg /20 保证玻璃面上辨识度） */
 export const RISK_LEVEL_MAP = {
-  high: { label: "高风险", text: "text-danger", bg: "bg-danger/15" },
-  medium: { label: "需关注", text: "text-warning", bg: "bg-warning/15" },
-  low: { label: "正常", text: "text-success", bg: "bg-success/15" },
+  high: { label: "高风险", text: "text-danger", bg: "bg-danger/20" },
+  medium: { label: "需关注", text: "text-warning", bg: "bg-warning/20" },
+  low: { label: "正常", text: "text-success", bg: "bg-success/20" },
 } as const;
 
 /** Agent 任务状态 → 展示文案与配色（run 枚举 running/succeeded/failed/cancelled 映射见 dashboard-data.tsx） */
 export const AGENT_TASK_STATUS_MAP = {
-  running: { label: "执行中", text: "text-primary", bg: "bg-primary/15" },
-  waiting_auth: { label: "待授权", text: "text-warning", bg: "bg-warning/15" },
-  done: { label: "已完成", text: "text-success", bg: "bg-success/15" },
-  failed: { label: "失败", text: "text-danger", bg: "bg-danger/15" },
-  cancelled: { label: "已取消", text: "text-muted", bg: "bg-secondary/15" },
+  running: { label: "执行中", text: "text-primary", bg: "bg-primary/20" },
+  waiting_auth: { label: "待授权", text: "text-warning", bg: "bg-warning/20" },
+  done: { label: "已完成", text: "text-success", bg: "bg-success/20" },
+  failed: { label: "失败", text: "text-danger", bg: "bg-danger/20" },
+  cancelled: { label: "已取消", text: "text-muted", bg: "bg-secondary/20" },
 } as const;
 
 /** 事实可信状态 → 展示文案与配色（factStatus 暂定值，以 B 主笔的 extraction-schema.md 为准） */
 export const FACT_STATUS_MAP = {
-  confirmed: { label: "已确认", text: "text-success", bg: "bg-success/15" },
-  inferred: { label: "推断", text: "text-warning", bg: "bg-warning/15" },
-  unverified: { label: "待核实", text: "text-muted", bg: "bg-secondary/15" },
+  confirmed: { label: "已确认", text: "text-success", bg: "bg-success/20" },
+  inferred: { label: "推断", text: "text-warning", bg: "bg-warning/20" },
+  unverified: { label: "待核实", text: "text-muted", bg: "bg-secondary/20" },
 } as const;
 
 /** 实体类型 → 展示文案（契约 5.1：person/asset/event/document/org） */

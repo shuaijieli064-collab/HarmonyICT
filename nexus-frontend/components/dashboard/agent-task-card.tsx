@@ -7,7 +7,7 @@ import type { AgentTask } from "@/types";
 export default function AgentTaskCard({ task }: { task: AgentTask }) {
   const status = AGENT_TASK_STATUS_MAP[task.status];
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-secondary/10 bg-card p-4">
+    <div className="card-flat flex items-center justify-between gap-3 rounded-xl p-4">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-content">{task.title}</p>
         <p className="mt-1 text-xs text-muted">更新于 {task.updatedAt}</p>

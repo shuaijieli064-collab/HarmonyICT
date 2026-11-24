@@ -16,7 +16,7 @@ export default function WorldModelPage() {
         <div className="flex items-center gap-2.5">
           <Network size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
           <div>
-            <h1 className="text-xl font-bold text-content">世界模型</h1>
+            <h1 className="text-2xl font-bold tracking-wide text-content">世界模型</h1>
             <p className="mt-1 text-sm text-secondary">你的个人世界：实体、事实、事件与来源</p>
           </div>
         </div>

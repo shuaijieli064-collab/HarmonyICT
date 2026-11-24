@@ -13,7 +13,7 @@ export default function ReportsPage() {
         <div className="flex items-center gap-2.5">
           <FileBarChart size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
           <div>
-            <h1 className="text-xl font-bold text-content">个人周报</h1>
+            <h1 className="text-2xl font-bold tracking-wide text-content">个人周报</h1>
             <p className="mt-1 text-sm text-secondary">你的世界模型活跃度、风险与任务完成情况的周期回顾</p>
           </div>
         </div>

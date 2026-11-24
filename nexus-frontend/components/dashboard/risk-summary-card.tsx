@@ -4,12 +4,16 @@ import { RISK_LEVEL_MAP } from "@/lib/constants";
 import { riskLevelIconOf } from "@/lib/icons";
 import type { RiskItem } from "@/types";
 
-/** 风险摘要卡：等级徽章（带语义图标）+ 触发规则徽章 + 触发原因 + 关联事实数 */
+/** 风险摘要卡：L2 语义卡——左侧 3px 等级色条 + 等级徽章 + 触发规则 + 原因 + 关联事实数
+ * flat 面（无 blur）：风险列表可能同屏 N 张，玻璃 blur 会突破性能红线。
+ */
 export default function RiskSummaryCard({ risk }: { risk: RiskItem }) {
   const level = RISK_LEVEL_MAP[risk.level];
   const LevelIcon = riskLevelIconOf(risk.level);
+  const stripColor =
+    risk.level === "high" ? "border-l-danger" : risk.level === "medium" ? "border-l-warning" : "border-l-success";
   return (
-    <div className="glass-card shimmer rounded-xl p-4">
+    <div className={`card-flat shimmer rounded-xl border-l-[3px] p-4 ${stripColor}`}>
       <div className="flex items-center justify-between gap-2">
         <p className="flex min-w-0 items-center gap-2 text-sm font-semibold text-content">
           <LevelIcon

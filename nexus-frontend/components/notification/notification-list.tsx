@@ -173,8 +173,8 @@ export default function NotificationList() {
               <MotionItem
                 key={item.id}
                 className={cn(
-                  "rounded-xl border border-secondary/10 bg-card p-4 transition-all duration-200",
-                  !item.read && "border-primary/30",
+                  "card-flat rounded-xl p-4 transition-all duration-200",
+                  !item.read && "border-primary/40",
                 )}
               >
                 <div className="flex items-start justify-between gap-4">

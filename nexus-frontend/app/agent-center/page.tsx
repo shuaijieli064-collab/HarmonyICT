@@ -11,7 +11,7 @@ export default function AgentCenterPage() {
       <header className="flex items-center gap-2.5">
         <Bot size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
         <div>
-          <h1 className="text-xl font-bold text-content">Agent 中心</h1>
+          <h1 className="text-2xl font-bold tracking-wide text-content">Agent 中心</h1>
           <p className="mt-1 text-sm text-secondary">授权 Agent 执行任务，全程留痕可回溯</p>
         </div>
       </header>

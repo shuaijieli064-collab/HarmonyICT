@@ -9,7 +9,7 @@ export default function TodayActions({ actions }: { actions: ActionItem[] }) {
       {actions.map((action) => (
         <li
           key={action.id}
-          className="flex items-start gap-3 rounded-xl border border-secondary/10 bg-card p-4"
+          className="card-flat flex items-start gap-3 rounded-xl p-4"
         >
           <input
             type="checkbox"
