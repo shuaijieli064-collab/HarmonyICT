@@ -2,12 +2,13 @@
 
 import { useCallback, useId, useRef, useState } from "react";
 import { cn, formatSize } from "@/lib/utils";
-import { FACT_STATUS_MAP, UPLOAD_ACCEPT, UPLOAD_MAX_SIZE, UPLOAD_MAX_SIZE_MB } from "@/lib/constants";
-import { pollExtraction, uploadFile } from "@/services/upload";
+import { FACT_STATUS_MAP, UPLOAD_ACCEPT, UPLOAD_MAX_SIZE_MB } from "@/lib/constants";
+import { pollExtraction, uploadFile, validateUploadFile } from "@/services/upload";
 import type { Fact, UploadFileItem } from "@/types";
 
 /** 文件上传交互组件：拖拽 + 点击选择 + 两段进度 + 事实结果展示
  * 契约 4.2 异步两步：上传拿 sourceId → 轮询事实（2s 间隔 / 60s 超时），已走 services/upload.ts 真实接口（需先登录）。
+ * 异常兜底：白名单/大小预校验拦截、失败原因展示、超时/失败可重试轮询（复用已返回的 sourceId）。
  */
 export default function UploadPanel() {
   const dropZoneId = useId();
@@ -15,18 +16,47 @@ export default function UploadPanel() {
   const [dragOver, setDragOver] = useState(false);
   const [files, setFiles] = useState<UploadFileItem[]>([]);
   const [results, setResults] = useState<Record<string, Fact[]>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   const updateFile = useCallback((id: string, patch: Partial<UploadFileItem>) => {
     setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
   }, []);
 
+  const pollSource = useCallback(
+    (id: string, sourceId: string) => {
+      void (async () => {
+        try {
+          const facts = await pollExtraction(sourceId, (progress) => {
+            updateFile(id, { progress, status: "extracting" });
+          });
+          updateFile(id, { status: "done" });
+          setResults((prev) => ({ ...prev, [id]: facts }));
+          setErrors((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        } catch (err) {
+          updateFile(id, { status: "failed" });
+          setErrors((prev) => ({
+            ...prev,
+            [id]: err instanceof Error ? err.message : "抽取失败，请稍后重试",
+          }));
+        }
+      })();
+    },
+    [updateFile]
+  );
+
   const startUpload = useCallback(
     (fileList: FileList) => {
       setError(null);
       for (const file of Array.from(fileList)) {
-        if (file.size > UPLOAD_MAX_SIZE) {
-          setError(`文件「${file.name}」超过大小上限 ${UPLOAD_MAX_SIZE_MB}MB`);
+        // 客户端预校验：扩展名白名单 + 大小上限（避免上传完才被后端 30102/30103 拒绝）
+        const invalidReason = validateUploadFile(file);
+        if (invalidReason) {
+          setError(invalidReason);
           continue;
         }
         const id = crypto.randomUUID();
@@ -40,20 +70,36 @@ export default function UploadPanel() {
             const sourceId = await uploadFile(file, (progress, phase) => {
               updateFile(id, { progress, status: phase === "uploading" ? "uploading" : "extracting" });
             });
+            updateFile(id, { sourceId });
             // 契约 4.2 第二步：轮询 sourceId 名下事实，出现即抽取完成
-            const facts = await pollExtraction(sourceId, (progress) => {
-              updateFile(id, { progress, status: "extracting" });
-            });
-            updateFile(id, { status: "done" });
-            setResults((prev) => ({ ...prev, [id]: facts }));
-          } catch {
+            pollSource(id, sourceId);
+          } catch (err) {
             updateFile(id, { status: "failed" });
+            setErrors((prev) => ({
+              ...prev,
+              [id]: err instanceof Error ? err.message : "上传失败，请检查后端服务",
+            }));
           }
         })();
       }
     },
-    [updateFile]
+    [pollSource, updateFile]
   );
+
+  /** 失败重试：复用已返回的 sourceId 继续轮询（后端仍在异步抽取的场景） */
+  const onRetry = (file: UploadFileItem) => {
+    if (!file.sourceId) {
+      setErrors((prev) => ({ ...prev, [file.id]: "上传未完成，请重新上传该文件" }));
+      return;
+    }
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[file.id];
+      return next;
+    });
+    updateFile(file.id, { status: "extracting", progress: 0 });
+    pollSource(file.id, file.sourceId);
+  };
 
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -140,6 +186,20 @@ export default function UploadPanel() {
                 aria-valuemax={100}
                 aria-label={`上传进度：${file.name}`}
               />
+            </div>
+          )}
+          {errors[file.id] && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-danger/10 p-3">
+              <p className="text-xs text-danger">{errors[file.id]}</p>
+              {file.status === "failed" && (
+                <button
+                  type="button"
+                  onClick={() => onRetry(file)}
+                  className="rounded-lg border border-danger/40 px-2.5 py-1 text-xs text-danger hover:bg-danger/10"
+                >
+                  重试轮询
+                </button>
+              )}
             </div>
           )}
           {results[file.id] && (

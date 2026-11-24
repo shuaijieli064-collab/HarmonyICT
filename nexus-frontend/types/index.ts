@@ -42,6 +42,8 @@ export interface RiskItem {
   level: RiskLevel;
   title: string;
   reason: string;
+  /** 触发规则编码（如 CERT_EXPIRY_30D），展示规则徽章用 */
+  ruleCode?: string | null;
   relatedFactCount: number | null;
 }
 
@@ -64,13 +66,14 @@ export interface ActionItem {
 /** 上传文件状态 */
 export type UploadStatus = "pending" | "uploading" | "extracting" | "done" | "failed";
 
-/** 上传文件条目 */
+/** 上传文件条目（sourceId 为契约 4.2 第一步返回，失败重试轮询时复用） */
 export interface UploadFileItem {
   id: string;
   name: string;
   size: number;
   progress: number;
   status: UploadStatus;
+  sourceId?: string;
 }
 
 /** 抽取文件状态（契约 4.3 来源列表 status） */

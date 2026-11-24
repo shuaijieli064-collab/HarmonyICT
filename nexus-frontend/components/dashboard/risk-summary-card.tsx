@@ -3,7 +3,7 @@
 import { RISK_LEVEL_MAP } from "@/lib/constants";
 import type { RiskItem } from "@/types";
 
-/** 风险摘要卡：等级徽章 + 触发原因 + 关联事实数 */
+/** 风险摘要卡：等级徽章 + 触发规则徽章 + 触发原因 + 关联事实数 */
 export default function RiskSummaryCard({ risk }: { risk: RiskItem }) {
   const level = RISK_LEVEL_MAP[risk.level];
   return (
@@ -14,6 +14,11 @@ export default function RiskSummaryCard({ risk }: { risk: RiskItem }) {
           {level.label}
         </span>
       </div>
+      {risk.ruleCode && (
+        <span className="mt-2 inline-block rounded-full bg-accent/10 px-2.5 py-0.5 text-xs text-primary">
+          规则 {risk.ruleCode}
+        </span>
+      )}
       <p className="mt-2 text-xs leading-relaxed text-secondary">{risk.reason}</p>
       {risk.relatedFactCount !== null && (
         <p className="mt-2 text-xs text-muted">关联事实 {risk.relatedFactCount} 条</p>

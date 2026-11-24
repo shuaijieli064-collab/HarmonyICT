@@ -91,6 +91,7 @@ export default function RiskList() {
     level: risk.level,
     title: risk.title,
     reason: risk.description || (risk.ruleCode ? `触发规则 ${risk.ruleCode}` : risk.riskType),
+    ruleCode: risk.ruleCode,
     relatedFactCount: null,
   });
 

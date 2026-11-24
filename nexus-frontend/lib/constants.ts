@@ -53,8 +53,21 @@ export const FACT_STATUS_MAP = {
   unverified: { label: "待核实", text: "text-muted", bg: "bg-secondary/15" },
 } as const;
 
+/** 实体类型 → 展示文案（契约 5.1：person/asset/event/document/org） */
+export const ENTITY_TYPE_MAP = {
+  person: "人物",
+  asset: "资产",
+  event: "事件",
+  document: "文档",
+  org: "组织",
+} as const;
+
 /** 允许上传的文件类型与大小上限（契约 docs/api-specification.md 4.1：≤20MB，pdf/docx/xlsx/txt/md/png/jpg） */
 export const UPLOAD_ACCEPT = ".pdf,.docx,.xlsx,.txt,.md,.png,.jpg,.jpeg";
 export const UPLOAD_MAX_SIZE = 20 * 1024 * 1024;
 /** 上传大小上限的展示文案（MB），避免组件层硬编码与常量不同步 */
 export const UPLOAD_MAX_SIZE_MB = UPLOAD_MAX_SIZE / (1024 * 1024);
+/** Mock 兜底开关：契约暂无对应接口的区块（驾驶舱目标进度/今日行动）是否启用演示数据。
+ * 默认关闭（真实联调态，显示占位说明）；演示场景可设 NEXT_PUBLIC_USE_MOCK_DATA=true 开启。
+ */
+export const USE_MOCK_FALLBACK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
