@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import SideNav from "@/components/layout/side-nav";
 import MobileNav from "@/components/layout/mobile-nav";
+import MotionProvider from "@/components/ui/motion-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,15 +21,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full">
-        <div className="flex min-h-screen">
-          <SideNav />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <MobileNav />
-            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 lg:px-8">
-              {children}
-            </main>
+        <MotionProvider>
+          <div className="flex min-h-screen">
+            <SideNav />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <MobileNav />
+              <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 lg:px-8">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        </MotionProvider>
       </body>
     </html>
   );

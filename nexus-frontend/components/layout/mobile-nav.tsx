@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
+import { navIconOf } from "@/lib/icons";
 import ThemeToggle from "@/components/layout/theme-toggle";
 
 /** 移动端顶部导航（<1024px），汉堡菜单展开页面列表；玻璃固定层（glass-nav） */
@@ -25,37 +27,36 @@ export default function MobileNav() {
         <ThemeToggle />
         <button
           type="button"
-          aria-label="打开导航菜单"
+          aria-label={open ? "关闭导航菜单" : "打开导航菜单"}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="flex h-11 w-11 items-center justify-center rounded-lg text-secondary hover:text-content"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-secondary transition-transform duration-200 active:scale-90 hover:text-content"
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <path
-              d={open ? "M4 4l12 12M16 4L4 16" : "M2 5h16M2 10h16M2 15h16"}
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
+          {open ? (
+            <X size={20} strokeWidth={1.75} aria-hidden="true" />
+          ) : (
+            <Menu size={20} strokeWidth={1.75} aria-hidden="true" />
+          )}
         </button>
       </div>
       {open && (
         <nav className="border-t border-secondary/10 px-3 py-2">
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href;
+            const Icon = navIconOf(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "mb-1 flex items-center rounded-lg px-4 py-3 text-sm",
+                  "mb-1 flex items-center gap-2.5 rounded-lg px-4 py-3 text-sm",
                   active
                     ? "bg-primary/15 text-primary"
                     : "text-secondary hover:bg-card-hover hover:text-content"
                 )}
               >
+                <Icon size={16} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
                 {item.label}
               </Link>
             );

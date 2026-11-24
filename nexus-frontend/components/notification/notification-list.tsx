@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { BellOff } from "lucide-react";
 import { NOTIFICATION_CATEGORY_MAP } from "@/lib/constants";
+import { notificationCategoryIconOf } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { MotionItem, MotionList } from "@/components/ui/motion";
 import { isLoggedIn } from "@/services/auth";
 import {
   listNotifications,
@@ -97,21 +100,26 @@ export default function NotificationList() {
   };
 
   if (state.phase !== "ready") {
+    if (state.phase === "loading") {
+      return (
+        <section aria-label="通知加载中" className="space-y-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="skeleton h-24 rounded-xl" />
+          ))}
+        </section>
+      );
+    }
     return (
       <section
         aria-label="通知列表"
         className="flex min-h-40 items-center justify-center rounded-xl border border-secondary/10 bg-card"
       >
-        {state.phase === "loading" ? (
-          <p className="text-sm text-muted">正在加载通知…</p>
-        ) : (
-          <div className="space-y-3 text-center">
-            <p className="text-sm text-warning">{state.message}</p>
-            <Link href="/login" className="inline-block text-sm text-primary hover:underline">
-              前往登录 / 注册 →
-            </Link>
-          </div>
-        )}
+        <div className="space-y-3 text-center">
+          <p className="text-sm text-warning">{state.message}</p>
+          <Link href="/login" className="inline-block text-sm text-primary hover:underline">
+            前往登录 / 注册 →
+          </Link>
+        </div>
       </section>
     );
   }
@@ -149,27 +157,31 @@ export default function NotificationList() {
       </div>
 
       {state.items.length === 0 ? (
-        <p className="rounded-xl border border-secondary/10 bg-card p-4 text-sm text-muted">
-          暂无通知：系统会在产生新风险或 Agent 完成动作后自动提醒
-        </p>
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-secondary/10 bg-card p-6 text-center">
+          <BellOff size={22} strokeWidth={1.5} className="text-muted" aria-hidden="true" />
+          <p className="text-sm text-secondary">暂无{onlyUnread ? "未读" : ""}通知</p>
+          <p className="text-xs text-muted">系统会在产生新风险或 Agent 完成动作后自动提醒</p>
+        </div>
       ) : (
-        <ul className="space-y-3">
+        <MotionList className="space-y-3">
           {state.items.map((item) => {
             const category = NOTIFICATION_CATEGORY_MAP[
               item.category as keyof typeof NOTIFICATION_CATEGORY_MAP
             ] ?? NOTIFICATION_CATEGORY_MAP.system;
+            const CategoryIcon = notificationCategoryIconOf(item.category);
             return (
-              <li
+              <MotionItem
                 key={item.id}
                 className={cn(
-                  "rounded-xl border border-secondary/10 bg-card p-4 transition-colors",
+                  "rounded-xl border border-secondary/10 bg-card p-4 transition-all duration-200",
                   !item.read && "border-primary/30",
                 )}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 space-y-1.5">
                     <div className="flex items-center gap-2">
-                      <span className={cn("rounded px-2 py-0.5 text-xs", category.bg, category.text)}>
+                      <span className={cn("flex items-center gap-1 rounded px-2 py-0.5 text-xs", category.bg, category.text)}>
+                        <CategoryIcon size={12} strokeWidth={2} aria-hidden="true" />
                         {category.label}
                       </span>
                       <span className={cn("truncate text-sm font-medium", item.read ? "text-secondary" : "text-content")}>
@@ -179,22 +191,22 @@ export default function NotificationList() {
                     {item.content && (
                       <p className="text-xs leading-relaxed text-secondary">{item.content}</p>
                     )}
-                    <p className="text-xs text-muted">{formatTime(item.createdAt)}</p>
+                    <p className="font-mono text-xs text-muted">{formatTime(item.createdAt)}</p>
                   </div>
                   {!item.read && (
                     <button
                       type="button"
                       onClick={() => handleRead(item.id)}
-                      className="shrink-0 text-xs text-primary hover:underline"
+                      className="shrink-0 text-xs text-primary transition-colors hover:underline"
                     >
                       标记已读
                     </button>
                   )}
                 </div>
-              </li>
+              </MotionItem>
             );
           })}
-        </ul>
+        </MotionList>
       )}
     </section>
   );

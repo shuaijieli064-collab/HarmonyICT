@@ -76,6 +76,13 @@ function buildGraph(graph: WorldGraphResponse) {
   };
 }
 
+/** 读取设计 token：ECharts 需要stringLiteral 颜色，运行时从 CSS 变量取（双主题跟随） */
+function cssVar(name: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
 type LoadState =
   | { phase: "loading" }
   | { phase: "error"; message: string }
@@ -124,7 +131,14 @@ export default function EntityGraph() {
       const graph = buildGraph(state.graph);
       chart.setOption({
         tooltip: { show: true, formatter: (params: { data?: { value?: string } }) => params.data?.value ?? "" },
-        legend: [{ data: graph.categories.map((category) => category.name), textStyle: { color: "#a1a1aa" } }],
+        legend: [{
+          data: graph.categories.map((category) => category.name),
+          textStyle: { color: cssVar("--text-secondary", "#a1a1aa") },
+        }],
+        // 玻璃画布透明：不遮住背景环境光
+        backgroundColor: "transparent",
+        animationDuration: 400,
+        animationEasing: "cubicOut",
         series: [
           {
             type: "graph",
@@ -135,7 +149,7 @@ export default function EntityGraph() {
             data: graph.nodes,
             links: graph.links,
             force: { repulsion: 220, edgeLength: 90, gravity: 0.08 },
-            label: { color: "#ededef", fontSize: 11 },
+            label: { color: cssVar("--text-primary", "#ededef"), fontSize: 11 },
             lineStyle: { curveness: 0.1 },
             emphasis: { focus: "adjacency", lineStyle: { width: 3 } },
           },
@@ -166,8 +180,15 @@ export default function EntityGraph() {
 
   if (state.phase === "loading") {
     return (
-      <div className="flex min-h-80 items-center justify-center rounded-xl border border-secondary/10 bg-card">
-        <p className="text-sm text-muted">正在加载图谱数据…</p>
+      <div className="min-h-80 rounded-xl border border-secondary/10 bg-card p-6">
+        <div className="flex h-full items-center justify-center">
+          <div className="w-full max-w-md space-y-4">
+            <div className="skeleton h-24 w-24 rounded-full" />
+            <div className="skeleton h-4 w-2/3 rounded-lg" />
+            <div className="skeleton h-4 w-1/2 rounded-lg" />
+            <div className="skeleton h-4 w-3/5 rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }
