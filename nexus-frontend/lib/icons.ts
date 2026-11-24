@@ -11,12 +11,15 @@ import {
   CircleCheck,
   CircleAlert,
   Clock,
+  Database,
   FileBarChart,
   FlaskConical,
   Info,
   LayoutDashboard,
+  ListTodo,
   Network,
   Radar,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import type { NavItem } from "@/lib/constants";
@@ -57,4 +60,16 @@ export const NOTIFICATION_CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
 
 export function notificationCategoryIconOf(category: string): LucideIcon {
   return NOTIFICATION_CATEGORY_ICON_MAP[category] ?? Info;
+}
+
+/** 驾驶舱指标卡水印图标（按 metric.id 映射，右上角 6% 透明度大图标） */
+export const METRIC_ICON_MAP: Record<string, LucideIcon> = {
+  facts: Database,
+  entities: Network,
+  risks: CircleAlert,
+  tasks: ListTodo,
+};
+
+export function metricIconOf(id: string): LucideIcon {
+  return METRIC_ICON_MAP[id] ?? Sparkles;
 }

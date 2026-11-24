@@ -10,7 +10,7 @@ export default function DecisionLabPage() {
   return (
     <div className="space-y-10">
       <header className="flex items-center gap-2.5">
-        <FlaskConical size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
+        <span className="icon-tile"><FlaskConical size={20} strokeWidth={1.75} aria-hidden="true" /></span>
         <div>
           <h1 className="text-2xl font-bold tracking-wide text-content">决策实验室</h1>
             <p className="mt-1 text-sm text-secondary">

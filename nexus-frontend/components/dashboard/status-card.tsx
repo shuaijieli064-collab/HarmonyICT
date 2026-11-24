@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useRef } from "react";
 import { animate, useMotionValue } from "framer-motion";
+import { metricIconOf } from "@/lib/icons";
 import type { StatusMetric } from "@/types";
 
 /** 指标数字滚动（count-up）：useMotionValue + animate 驱动，不经过 React 渲染循环。
@@ -30,12 +31,19 @@ function CountUpText({ value }: { value: number }) {
 
 const MemoCountUp = memo(CountUpText);
 
-/** 驾驶舱状态指标卡：L1 强调卡（elevated 玻璃 + 内高光）+ display 级数字滚动 */
+/** 驾驶舱状态指标卡：L1 强调卡（elevated 玻璃 + 内高光）+ display 级数字滚动 + 右上角水印图标 */
 function StatusCardInner({ metric }: { metric: StatusMetric }) {
   const numeric = Number(metric.value);
   const isNumeric = Number.isFinite(numeric) && metric.value.trim() !== "";
+  const WatermarkIcon = metricIconOf(metric.id);
   return (
-    <div className="card-elevated shimmer rounded-xl p-4">
+    <div className="card-elevated shimmer relative overflow-hidden rounded-xl p-4">
+      <WatermarkIcon
+        size={64}
+        strokeWidth={1}
+        className="pointer-events-none absolute -right-2 -top-2 text-content opacity-[0.06]"
+        aria-hidden="true"
+      />
       <p className="text-sm text-secondary">{metric.label}</p>
       <p className="mt-1 text-[32px] font-bold leading-tight tabular-nums text-content">
         {isNumeric ? <MemoCountUp value={numeric} /> : metric.value}

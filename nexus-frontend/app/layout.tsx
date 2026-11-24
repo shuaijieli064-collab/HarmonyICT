@@ -21,6 +21,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full">
+        {/* 环境极光：大尺度光斑缓慢漂移（z-index:-1，不拦截交互） */}
+        <div className="aurora" aria-hidden="true" />
         <MotionProvider>
           <div className="flex min-h-screen">
             <SideNav />

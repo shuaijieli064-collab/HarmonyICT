@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { login, register } from "@/services/auth";
 import { ApiError } from "@/lib/http";
 
@@ -51,7 +52,10 @@ export default function LoginPage() {
   return (
     <div className="mx-auto mt-10 w-full max-w-sm space-y-6">
       <div className="text-center">
-        <p className="text-lg font-bold text-primary">NEXUS</p>
+        <span className="icon-tile mx-auto mb-3 !h-12 !w-12" aria-hidden="true">
+          <Sparkles size={22} strokeWidth={2} />
+        </span>
+        <p className="text-gradient text-2xl font-bold tracking-wide">NEXUS</p>
         <p className="mt-1 text-sm text-secondary">登录后开始构建你的个人世界模型</p>
       </div>
 
