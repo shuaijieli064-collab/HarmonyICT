@@ -13,7 +13,11 @@ export default function RiskSummaryCard({ risk }: { risk: RiskItem }) {
   const stripColor =
     risk.level === "high" ? "border-l-danger" : risk.level === "medium" ? "border-l-warning" : "border-l-success";
   return (
-    <div className={`card-flat shimmer rounded-xl border-l-[3px] p-4 ${stripColor}`}>
+    <div
+      className={`card-flat shimmer rounded-xl border-l-[3px] p-4 ${stripColor} ${
+        risk.level === "high" ? "glow-danger" : ""
+      }`}
+    >
       <div className="flex items-center justify-between gap-2">
         <p className="flex min-w-0 items-center gap-2 text-sm font-semibold text-content">
           <LevelIcon

@@ -10,7 +10,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-center gap-2.5">
-        <LayoutDashboard size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
+        <span className="icon-tile"><LayoutDashboard size={20} strokeWidth={1.75} aria-hidden="true" /></span>
         <div>
           <h1 className="text-2xl font-bold tracking-wide text-content">个人智能驾驶舱</h1>
           <p className="mt-1 text-sm text-secondary">一屏看清你的世界状态、风险与今日行动</p>

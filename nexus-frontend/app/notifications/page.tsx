@@ -9,7 +9,7 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-center gap-2.5">
-        <Bell size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
+        <span className="icon-tile"><Bell size={20} strokeWidth={1.75} aria-hidden="true" /></span>
         <div>
           <h1 className="text-2xl font-bold tracking-wide text-content">通知中心</h1>
           <p className="mt-1 text-sm text-secondary">风险产生与 Agent 动作完成时自动提醒，重要动态不再错过</p>

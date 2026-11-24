@@ -9,7 +9,7 @@ export default function AssetCenterPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-center gap-2.5">
-        <Boxes size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
+        <span className="icon-tile"><Boxes size={20} strokeWidth={1.75} aria-hidden="true" /></span>
         <div>
           <h1 className="text-2xl font-bold tracking-wide text-content">资产中心</h1>
           <p className="mt-1 text-sm text-secondary">设备、订阅与预算的统一台账（数据来自世界模型实体）</p>

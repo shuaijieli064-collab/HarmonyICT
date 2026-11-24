@@ -11,7 +11,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <FileBarChart size={22} strokeWidth={1.75} className="text-primary" aria-hidden="true" />
+          <span className="icon-tile"><FileBarChart size={20} strokeWidth={1.75} aria-hidden="true" /></span>
           <div>
             <h1 className="text-2xl font-bold tracking-wide text-content">个人周报</h1>
             <p className="mt-1 text-sm text-secondary">你的世界模型活跃度、风险与任务完成情况的周期回顾</p>

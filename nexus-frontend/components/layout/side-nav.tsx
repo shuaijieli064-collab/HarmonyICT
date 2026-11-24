@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, LogOut } from "lucide-react";
+import { Bell, LogOut, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
 import { navIconOf } from "@/lib/icons";
@@ -47,9 +47,12 @@ export default function SideNav() {
 
   return (
     <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r border-secondary/10 bg-transparent">
-      <div className="flex h-14 items-center px-6">
-        <span className="text-lg font-bold text-primary">NEXUS</span>
-        <span className="ml-2 text-xs text-secondary">个人资料智能管家</span>
+      <div className="flex h-14 items-center gap-2 px-6">
+        <span className="icon-tile !h-7 !w-7 !rounded-md" aria-hidden="true">
+          <Sparkles size={14} strokeWidth={2} />
+        </span>
+        <span className="text-gradient text-lg font-bold">NEXUS</span>
+        <span className="ml-1 text-xs text-secondary">个人资料智能管家</span>
       </div>
       <nav className="flex-1 px-3 py-2">
         {NAV_ITEMS.map((item) => {

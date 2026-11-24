@@ -225,6 +225,84 @@ body {
   border-color: var(--border-glass-hover);
 }
 
+/* ── 4.7 点缀元素（渐变底座/渐变文字/语义微光/极光）──────── */
+
+/* 图标渐变底座：页头图标的"产品感"容器（无 blur，纯渐变） */
+.icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent-soft), color-mix(in srgb, var(--accent-secondary) 14%, transparent));
+  border: 1px solid var(--border-accent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* 渐变文字：logo/品牌字（accent → accent-secondary 对角渐变） */
+.text-gradient {
+  background: linear-gradient(120deg, var(--accent), var(--accent-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 高风险语义微光：仅高风险卡使用（发光克制原则的唯一例外之一） */
+.glow-danger {
+  box-shadow: 0 0 20px color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+/* 环境极光：两个大尺度模糊光斑缓慢漂移（transform 合成层，60s 循环） */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  width: 55vmax;
+  height: 55vmax;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  will-change: transform;
+}
+.aurora::before {
+  top: -20vmax;
+  left: -10vmax;
+  background: radial-gradient(circle, var(--bg-ambient-1), transparent 65%);
+  animation: aurora-drift-1 60s ease-in-out infinite alternate;
+}
+.aurora::after {
+  bottom: -25vmax;
+  right: -15vmax;
+  background: radial-gradient(circle, var(--bg-ambient-2), transparent 65%);
+  animation: aurora-drift-2 75s ease-in-out infinite alternate;
+}
+@keyframes aurora-drift-1 {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(8vmax, 6vmax) scale(1.15);
+  }
+}
+@keyframes aurora-drift-2 {
+  from {
+    transform: translate(0, 0) scale(1.1);
+  }
+  to {
+    transform: translate(-7vmax, -5vmax) scale(0.95);
+  }
+}
+
 /* ── 5. Shimmer 微光扫过（hover 触发，克制使用）────────── */
 
 @keyframes shimmer-sweep {
@@ -364,6 +442,10 @@ button {
   .skeleton::after,
   .bar-grow {
     display: none;
+    animation: none;
+  }
+  .aurora::before,
+  .aurora::after {
     animation: none;
   }
   .glass-card,
