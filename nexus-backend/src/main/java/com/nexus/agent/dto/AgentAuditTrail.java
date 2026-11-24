@@ -7,6 +7,7 @@ import java.time.Instant;
  * 为什么放在响应 DTO 而不是新增数据库列：agent_action_logs 表结构与契约已定稿，
  * 审计信息随 payload 的 audit 段持久化，查询时解析成结构化字段，避免跨线改 DDL 与契约文档。
  * BIGINT 一律按字符串暴露，避免前端 JS 精度丢失（api-specification.md 第 1 节）。
+ * 前端字段对照与接线示例见 com/nexus/agent/AGENT-LOG-API.md。
  *
  * @param action          被授权执行的动作类型
  * @param authorizedBy    授权人 userId（JWT 上下文，不信任前端传参）

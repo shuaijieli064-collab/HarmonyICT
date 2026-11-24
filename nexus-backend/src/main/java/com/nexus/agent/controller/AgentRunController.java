@@ -49,7 +49,10 @@ public class AgentRunController {
         return Result.ok(runService.get(UserContext.get(), id));
     }
 
-    /** V3：执行日志分页查询（Agent Center 时间线），字段与详情内 logs 一致，附审计摘要。 */
+    /**
+     * V3：执行日志分页查询（Agent Center 时间线），字段与详情内 logs 一致，附审计摘要。
+     * 完整字段说明与前端接线示例见 com/nexus/agent/AGENT-LOG-API.md（不修改 api-spec 主契约）。
+     */
     @GetMapping("/{id}/logs")
     public Result<PageResult<AgentActionLogResponse>> logs(
             @PathVariable Long id,
