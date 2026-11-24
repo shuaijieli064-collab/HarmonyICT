@@ -5,7 +5,7 @@ export interface NavItem {
   label: string;
 }
 
-/** 七大页面导航，顺序即产品主流程 */
+/** 八大页面导航，顺序即产品主流程 */
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/", label: "驾驶舱" },
   { href: "/world-model", label: "世界模型" },
@@ -14,6 +14,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/agent-center", label: "Agent 中心" },
   { href: "/asset-center", label: "资产中心" },
   { href: "/notifications", label: "通知中心" },
+  { href: "/reports", label: "周报" },
 ] as const;
 
 /** 通知类别 → 展示文案与配色（全站统一语义） */

@@ -352,3 +352,50 @@ export interface DashboardSummary {
     status: string;
   }[];
 }
+
+/* ===== 体量扩充第二波：图谱 / 周报 / 导出 ===== */
+
+/** 世界模型图谱节点（GET /api/v1/world/graph；kind ∈ entity|fact|event|risk） */
+export interface WorldGraphNode {
+  id: string;
+  kind: "entity" | "fact" | "event" | "risk" | string;
+  name: string;
+  /** entity 节点为实体类型，其余为节点种类 */
+  category: string;
+  meta: string;
+}
+
+/** 世界模型图谱边（kind ∈ fact_of|event_of|co_source|risk_on） */
+export interface WorldGraphLink {
+  source: string;
+  target: string;
+  kind: "fact_of" | "event_of" | "co_source" | "risk_on" | string;
+  label: string;
+}
+
+/** 世界模型图谱聚合响应 */
+export interface WorldGraphResponse {
+  nodes: WorldGraphNode[];
+  links: WorldGraphLink[];
+}
+
+/** 个人周期报告（GET /api/v1/reports/weekly） */
+export interface WeeklyReport {
+  periodStart: string;
+  periodEnd: string;
+  days: number;
+  newFactCount: number;
+  newEventCount: number;
+  newRiskCount: number;
+  taskCompletedCount: number;
+  agentRunCount: number;
+  notificationCount: number;
+  riskByLevel: { level: RiskLevel | string; count: number }[];
+  dailyTrend: { day: string; facts: number; events: number }[];
+  notableRisks: {
+    id: string;
+    level: RiskLevel | string;
+    title: string;
+    ruleCode: string | null;
+  }[];
+}

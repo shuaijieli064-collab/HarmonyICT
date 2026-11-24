@@ -2,74 +2,74 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { listEntities, listFacts } from "@/services/world";
-import { useIsLoggedIn } from "@/hooks/use-auth";
 import type { EChartsType } from "echarts";
-import type { Entity, EntityType, Fact } from "@/types";
+import { useIsLoggedIn } from "@/hooks/use-auth";
+import { getWorldGraph } from "@/services/world";
+import type { EntityType, WorldGraphLink, WorldGraphNode, WorldGraphResponse } from "@/types";
 
-/** 实体关系图谱（ECharts graph 力导向）：实体为一级节点（按类型着色），
- * 事实为二级节点（predicate 命名），边为 事实.subjectId → 事实.id 的放射结构，
- * 直观呈现「实体 —谓词— 取值」知识三元组。echarts 动态 import 避免 SSR 引用窗口对象。
+/** 实体关系图谱（体量扩充第二波已切聚合接口 /api/v1/world/graph）：
+ * 节点=实体/事实/事件/未解决风险；边=事实归属、事件归属、同源资料、风险关联。
+ * 渲染层沿用 ECharts 力导向布局。
  */
 
-const CATEGORY_LABELS: Record<EntityType | "fact", string> = {
+const CATEGORY_KEYS = ["person", "asset", "document", "org", "event_type", "fact", "event", "risk"] as const;
+
+const CATEGORY_LABELS: Record<string, string> = {
   person: "人物",
   asset: "资产",
-  event: "事件",
   document: "文档",
   org: "组织",
+  event_type: "其他实体",
   fact: "事实",
+  event: "事件",
+  risk: "风险",
 };
 
-/** 靛紫系对齐「暗夜玻璃」主题（globals.css --accent 系） */
-const CATEGORY_COLORS = ["#6366f1", "#a855f7", "#60a5fa", "#34d399", "#fbbf24", "#6b7280"];
+const CATEGORY_COLORS = ["#6366f1", "#a855f7", "#60a5fa", "#34d399", "#6b7280", "#fbbf24", "#38bdf8", "#f87171"];
 
-const ENTITY_TYPES: EntityType[] = ["person", "asset", "event", "document", "org"];
+const KIND_SIZE: Record<string, number> = { entity: 34, fact: 14, event: 20, risk: 26 };
 
-function buildGraph(entities: Entity[], facts: Fact[]) {
-  const entityById = new Map(entities.map((entity) => [entity.id, entity]));
-  const nodes: Array<{
-    id: string;
-    name: string;
-    category: number;
-    symbolSize: number;
-    label?: { show: boolean };
-    value?: string;
-  }> = [];
-  const links: Array<{ source: string; target: string; label?: { show: boolean; formatter: string } }> = [];
+const EDGE_COLORS: Record<string, string> = {
+  fact_of: "#3f3f46",
+  event_of: "#38bdf8",
+  co_source: "#fbbf24",
+  risk_on: "#f87171",
+};
 
-  for (const entity of entities) {
-    const categoryIndex = ENTITY_TYPES.indexOf(entity.entityType as EntityType);
-    nodes.push({
-      id: `entity:${entity.id}`,
-      name: entity.name,
-      category: categoryIndex >= 0 ? categoryIndex : 0,
-      symbolSize: 34,
-      label: { show: true },
-    });
+const ENTITY_TYPES: EntityType[] = ["person", "asset", "document", "org"];
+
+function categoryKeyOf(node: WorldGraphNode): string {
+  if (node.kind === "entity") {
+    return ENTITY_TYPES.includes(node.category as EntityType) ? node.category : "event_type";
   }
+  return CATEGORY_KEYS.includes(node.category as (typeof CATEGORY_KEYS)[number]) ? node.category : "fact";
+}
 
-  for (const fact of facts) {
-    if (!entityById.has(fact.subjectId)) continue;
-    nodes.push({
-      id: `fact:${fact.id}`,
-      name: `${fact.predicate}\n${fact.objectValue}`,
-      category: ENTITY_TYPES.length,
-      symbolSize: 16,
-      label: { show: true },
-      value: String(fact.confidence),
-    });
-    links.push({
-      source: `entity:${fact.subjectId}`,
-      target: `fact:${fact.id}`,
-      label: { show: false, formatter: fact.predicate },
-    });
-  }
+function buildGraph(graph: WorldGraphResponse) {
+  const nodes = graph.nodes.map((node) => ({
+    id: node.id,
+    name: node.name,
+    category: CATEGORY_KEYS.indexOf(categoryKeyOf(node) as (typeof CATEGORY_KEYS)[number]),
+    symbolSize: KIND_SIZE[node.kind] ?? 16,
+    label: { show: node.kind !== "fact" },
+    value: node.meta || undefined,
+  }));
+
+  const links = graph.links.map((link: WorldGraphLink) => ({
+    source: link.source,
+    target: link.target,
+    lineStyle: {
+      color: EDGE_COLORS[link.kind] ?? "#3f3f46",
+      width: link.kind === "fact_of" ? 1 : 2,
+      type: link.kind === "co_source" ? "dashed" : "solid",
+    },
+    label: { show: link.kind !== "fact_of", formatter: link.label, fontSize: 9 },
+  }));
 
   return {
-    categories: [...ENTITY_TYPES, "fact"].map((key) => ({
-      name: CATEGORY_LABELS[key as EntityType | "fact"],
-      itemStyle: { color: CATEGORY_COLORS[["person", "asset", "event", "document", "org", "fact"].indexOf(key)] },
+    categories: CATEGORY_KEYS.map((key, index) => ({
+      name: CATEGORY_LABELS[key],
+      itemStyle: { color: CATEGORY_COLORS[index] },
     })),
     nodes,
     links,
@@ -80,7 +80,7 @@ type LoadState =
   | { phase: "loading" }
   | { phase: "error"; message: string }
   | { phase: "empty" }
-  | { phase: "ready"; entities: Entity[]; facts: Fact[] };
+  | { phase: "ready"; graph: WorldGraphResponse };
 
 export default function EntityGraph() {
   const authed = useIsLoggedIn();
@@ -89,12 +89,9 @@ export default function EntityGraph() {
   const [state, setState] = useState<LoadState>({ phase: "loading" });
 
   const fetchGraphData = useCallback(async (): Promise<LoadState> => {
-    const [entityPage, factPage] = await Promise.all([
-      listEntities({ page: 1, pageSize: 100 }),
-      listFacts({ page: 1, pageSize: 100 }),
-    ]);
-    if (entityPage.records.length === 0) return { phase: "empty" };
-    return { phase: "ready", entities: entityPage.records, facts: factPage.records };
+    const graph = await getWorldGraph();
+    if (graph.nodes.length === 0) return { phase: "empty" };
+    return { phase: "ready", graph };
   }, []);
 
   useEffect(() => {
@@ -124,7 +121,7 @@ export default function EntityGraph() {
       if (disposed || !containerRef.current) return;
       const chart = echarts.init(containerRef.current);
       chartRef.current = chart;
-      const graph = buildGraph(state.entities, state.facts);
+      const graph = buildGraph(state.graph);
       chart.setOption({
         tooltip: { show: true, formatter: (params: { data?: { value?: string } }) => params.data?.value ?? "" },
         legend: [{ data: graph.categories.map((category) => category.name), textStyle: { color: "#a1a1aa" } }],
@@ -139,8 +136,8 @@ export default function EntityGraph() {
             links: graph.links,
             force: { repulsion: 220, edgeLength: 90, gravity: 0.08 },
             label: { color: "#ededef", fontSize: 11 },
-            lineStyle: { color: "#3f3f46", curveness: 0.1 },
-            emphasis: { focus: "adjacency", lineStyle: { width: 2 } },
+            lineStyle: { curveness: 0.1 },
+            emphasis: { focus: "adjacency", lineStyle: { width: 3 } },
           },
         ],
       });
