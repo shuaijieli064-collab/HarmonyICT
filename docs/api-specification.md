@@ -223,14 +223,53 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 ```
 **`payload` 类型说明（2026-11-22 与前端对齐）**：操作载荷以 **JSON 字符串**（非对象）传输（TEXT 列），前端展示需 `JSON.parse(payload)`。`targetId`：新建类动作为 `null`（如 create_task 执行成功后回填新任务 id）；授权通过后由后端动作执行器回填。
 
-## 9. 附录
+## 9. 聚合视图模块（阶段三新增：资产中心 / 情报中心）
 
-### 9.1 健康检查（C 联调探活用）
+只读聚合接口：不产生新数据，仅对世界模型（实体/事实/事件）、风险、任务、Agent 执行做重排展示。
+
+### 9.1 资产中心
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/v1/assets` | 资产台账（实体分页 + 关联 active 事实聚合）：`page/pageSize/entityType(可选)/keyword(可选)` |
+| `GET /api/v1/assets/summary` | 汇总：总资产数、按类型统计、价格类事实求和、未关闭风险数 |
+
+响应 `data`（资产条目）：
+```json
+{ "id": "1948...", "entityType": "asset", "name": "联想笔记本",
+  "attributes": "{\"brand\":\"Lenovo\"}", "createdAt": "...",
+  "facts": [ { "factId": "1948...", "predicate": "price", "objectValue": "5499",
+               "valueType": "number", "unit": "CNY", "normalizedValue": "5499", "validUntil": null } ] }
+```
+价格汇总口径：`predicate ∈ {price, cost, amount, budget, total, monthly_price, renewal_price, unit_price}` 的事实，优先取 `normalizedValue`，解析失败的跳过；`valueUnit` 取出现最多的单位（众数）。
+
+### 9.2 情报中心
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/v1/intel/summary` | 汇总：未关闭风险（按等级分布）、近 7 天事件、待办任务（todo/in_progress）、近 7 天 Agent 执行 |
+| `GET /api/v1/intel/feed` | 统一情报流：`page/pageSize/type(all|risk|event|agent)/days(1-90，默认 30)`，按时间倒序合并分页 |
+
+响应 `data`（summary）：
+```json
+{ "openRiskCount": 3, "riskByLevel": { "high": 1, "medium": 2 },
+  "recentEventCount": 5, "pendingTaskCount": 4, "recentAgentRunCount": 2 }
+```
+响应 `data`（feed 条目）：
+```json
+{ "type": "risk", "refId": "1948...", "title": "订阅即将续费", "description": "...",
+  "level": "medium", "status": "open", "occurredAt": "..." }
+```
+`type` 枚举：`risk / event / agent`；`level` 仅风险条目有值；`occurredAt` 取各来源业务时间（风险 created_at / 事件 occurred_at / Agent started_at）。
+
+## 10. 附录
+
+### 10.1 健康检查（C 联调探活用）
 
 - `GET /actuator/health`：`{ "status": "UP" }`（免认证）。
 - `GET /api/v1/health`：业务级健康检查（免认证，返回服务名与当前认证用户）。
 
-### 9.2 C 端 Mock 开发提示
+### 10.2 C 端 Mock 开发提示
 
 1. 统一按 `Result<T>` 包裹解析；`code !== 0` 走错误提示分支。
 2. Mock 数据须放入独立 mock 文件并标注（规范 3.3），禁止散落在组件里。
