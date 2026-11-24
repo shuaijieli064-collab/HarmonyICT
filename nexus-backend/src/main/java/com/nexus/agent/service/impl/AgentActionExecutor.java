@@ -5,7 +5,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexus.agent.entity.AgentActionLog;
 import com.nexus.agent.mapper.AgentActionLogMapper;
+import com.nexus.agent.util.AgentAuditSupport;
 import com.nexus.common.exception.BizException;
+import com.nexus.common.result.ResultCode;
 import com.nexus.task.dto.TaskCreateRequest;
 import com.nexus.task.dto.TaskResponse;
 import com.nexus.task.service.TaskService;
@@ -64,9 +66,11 @@ public class AgentActionExecutor {
                 executeOne(userId, actionLog);
                 success++;
             } catch (Exception e) {
-                // 单条失败不影响其余动作；失败结果落库留痕
+                // 单条失败不影响其余动作；失败原因随 audit 段落库，供前端时间线展示
                 log.warn("动作执行失败: logId={}, type={}, reason={}",
                         actionLog.getId(), actionLog.getActionType(), e.getMessage());
+                actionLog.setPayload(AgentAuditSupport.write(actionLog.getPayload(),
+                        "failureReason", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
                 markResult(actionLog, "failure");
             }
         }
@@ -74,6 +78,15 @@ public class AgentActionExecutor {
     }
 
     private void executeOne(Long userId, AgentActionLog actionLog) {
+        // 执行路径再次校验白名单与级别，防止历史数据或绕过编排器写入的危险动作被执行
+        String actionType = actionLog.getActionType();
+        if (AgentCapabilityCatalog.isForbidden(actionType)) {
+            throw new BizException(ResultCode.AGENT_PERMISSION_DENIED, "禁止执行高风险动作: " + actionType);
+        }
+        String level = actionLog.getLevel();
+        if (level != null && !List.of("L0", "L1", "L2").contains(level)) {
+            throw new BizException(ResultCode.AGENT_PERMISSION_DENIED, "非法操作级别: " + level);
+        }
         Map<String, Object> payload = parsePayload(actionLog.getPayload());
         switch (actionLog.getActionType() == null ? "" : actionLog.getActionType()) {
             case "create_task" -> {
@@ -144,8 +157,12 @@ public class AgentActionExecutor {
     }
 
     private void markResult(AgentActionLog actionLog, String result) {
+        Instant now = Instant.now();
         actionLog.setResult(result);
-        actionLog.setUpdatedAt(Instant.now());
+        actionLog.setUpdatedAt(now);
+        actionLog.setPayload(AgentAuditSupport.write(actionLog.getPayload(), Map.of(
+                "executedAt", now.toString(),
+                "executionResult", result)));
         logMapper.updateById(actionLog);
     }
 }

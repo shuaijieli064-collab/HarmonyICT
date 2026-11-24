@@ -1,5 +1,6 @@
 package com.nexus.agent.controller;
 
+import com.nexus.agent.dto.AgentActionLogResponse;
 import com.nexus.agent.dto.AgentRunResponse;
 import com.nexus.agent.dto.RunAuthorizeRequest;
 import com.nexus.agent.dto.RunCreateRequest;
@@ -46,6 +47,20 @@ public class AgentRunController {
     @GetMapping("/{id}")
     public Result<RunDetailResponse> get(@PathVariable Long id) {
         return Result.ok(runService.get(UserContext.get(), id));
+    }
+
+    /**
+     * V3：执行日志分页查询（Agent Center 时间线），字段与详情内 logs 一致，附审计摘要。
+     * 完整字段说明与前端接线示例见 com/nexus/agent/AGENT-LOG-API.md（不修改 api-spec 主契约）。
+     */
+    @GetMapping("/{id}/logs")
+    public Result<PageResult<AgentActionLogResponse>> logs(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) String result) {
+        return Result.ok(runService.listLogs(UserContext.get(), id, level, result, page, pageSize));
     }
 
     @PostMapping("/{id}/execute")
