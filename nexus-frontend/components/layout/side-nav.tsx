@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
 import { useIsLoggedIn, useUsername } from "@/hooks/use-auth";
-import { clearAuth } from "@/services/auth";
+import { logout } from "@/services/auth";
 
 /** 桌面端左侧导航栏（≥1024px 常驻），底部含登录态入口（useSyncExternalStore 订阅） */
 export default function SideNav() {
@@ -44,7 +44,13 @@ export default function SideNav() {
             <p className="text-secondary">
               已登录：<span className="text-content">{username ?? "用户"}</span>
             </p>
-            <button type="button" onClick={() => clearAuth()} className="text-muted hover:text-secondary">
+            <button
+              type="button"
+              onClick={() => {
+                void logout();
+              }}
+              className="text-muted hover:text-secondary"
+            >
               退出登录
             </button>
           </>

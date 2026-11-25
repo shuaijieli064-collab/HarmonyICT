@@ -6,7 +6,7 @@
 
 import { request } from "@/lib/http";
 import { UPLOAD_ACCEPT, UPLOAD_MAX_SIZE, UPLOAD_MAX_SIZE_MB } from "@/lib/constants";
-import type { Fact } from "@/types";
+import type { Fact, PageResult, Source } from "@/types";
 
 export type UploadPhase = "uploading" | "extracting";
 
@@ -27,14 +27,15 @@ export interface UploadResponse {
   status: "pending";
 }
 
-/** 客户端预校验（契约 4.1：单文件 ≤ 20MB，pdf/docx/xlsx/txt/md/png/jpg）：
+/** 客户端预校验（契约 4.1 收窄：单文件 ≤ 20MB，pdf/txt/md/png/jpg）：
  * 扩展名白名单先行拦截，避免不合规文件上传完才被后端 30102 拒绝。
+ * Word/Excel 暂不支持（解析管道未就绪，上传必失败），白名单已移除。
  */
 export function validateUploadFile(file: File): string | null {
   const lowerName = file.name.toLowerCase();
   const allowedExtensions = UPLOAD_ACCEPT.split(",");
   if (!allowedExtensions.some((ext) => lowerName.endsWith(ext))) {
-    return `不支持的文件类型「${file.name}」，仅限 pdf / docx / xlsx / txt / md / png / jpg`;
+    return `不支持的文件类型「${file.name}」，仅限 pdf / txt / md / png / jpg（Word/Excel 暂不支持）`;
   }
   if (file.size > UPLOAD_MAX_SIZE) {
     return `文件「${file.name}」超过大小上限 ${UPLOAD_MAX_SIZE_MB}MB`;
@@ -101,6 +102,11 @@ async function fetchSourceFacts(sourceId: string): Promise<PageEnvelope<Fact>> {
   return request<PageEnvelope<Fact>>("/api/v1/facts", {
     query: { sourceId, status: "active", page: 1, pageSize: POLL_PAGE_SIZE },
   });
+}
+
+/** 来源列表（契约 4.3）：抽取超时/失败后用户在此核对每个来源的解析状态 */
+export function listSources(options: { page?: number; pageSize?: number } = {}) {
+  return request<PageResult<Source>>("/api/v1/sources", { query: options });
 }
 
 /** 轮询抽取结果（契约 4.2 第二步）：sourceId 名下出现 active 事实即完成；

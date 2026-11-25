@@ -62,8 +62,11 @@ export const ENTITY_TYPE_MAP = {
   org: "组织",
 } as const;
 
-/** 允许上传的文件类型与大小上限（契约 docs/api-specification.md 4.1：≤20MB，pdf/docx/xlsx/txt/md/png/jpg） */
-export const UPLOAD_ACCEPT = ".pdf,.docx,.xlsx,.txt,.md,.png,.jpg,.jpeg";
+/** 允许上传的文件类型与大小上限（契约 docs/api-specification.md 4.1 收窄）：
+ * 后端解析管道暂未支持 Word/Excel（docx/xlsx 上传后抽取必失败置 failed），
+ * 白名单先去掉这两类，待 B 补齐解析链后恢复，避免演示期上传必失败的坏体验。
+ */
+export const UPLOAD_ACCEPT = ".pdf,.txt,.md,.png,.jpg,.jpeg";
 export const UPLOAD_MAX_SIZE = 20 * 1024 * 1024;
 /** 上传大小上限的展示文案（MB），避免组件层硬编码与常量不同步 */
 export const UPLOAD_MAX_SIZE_MB = UPLOAD_MAX_SIZE / (1024 * 1024);

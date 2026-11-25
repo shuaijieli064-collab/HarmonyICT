@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import UploadPanel from "@/components/upload/upload-panel";
+import SourcesPanel from "@/components/upload/sources-panel";
 import DashboardData from "@/components/dashboard/dashboard-data";
 
 export const metadata: Metadata = { title: "驾驶舱 · NEXUS" };
@@ -18,6 +19,11 @@ export default function DashboardPage() {
       <section aria-label="资料上传">
         <h2 className="mb-3 text-base font-semibold text-content">上传资料</h2>
         <UploadPanel />
+      </section>
+
+      <section aria-label="来源列表">
+        <h2 className="mb-3 text-base font-semibold text-content">来源列表</h2>
+        <SourcesPanel />
       </section>
     </div>
   );

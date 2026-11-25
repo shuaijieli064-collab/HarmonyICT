@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { createEntity, listEntities, listFacts, parseEntityAttributes } from "@/services/world";
+import { createEntity, createFact, listEntities, listFacts, parseEntityAttributes } from "@/services/world";
 import { ApiError } from "@/lib/http";
 import { useIsLoggedIn } from "@/hooks/use-auth";
 import { ENTITY_TYPE_MAP, FACT_STATUS_MAP } from "@/lib/constants";
@@ -31,6 +31,11 @@ export default function WorldPanel() {
   const [name, setName] = useState("");
   const [attributesText, setAttributesText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [factFormOpen, setFactFormOpen] = useState(false);
+  const [factSubject, setFactSubject] = useState("");
+  const [factPredicate, setFactPredicate] = useState("");
+  const [factObject, setFactObject] = useState("");
+  const [factBusy, setFactBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -112,6 +117,29 @@ export default function WorldPanel() {
         }
       })
       .finally(() => setBusy(false));
+  };
+
+  const onCreateFact = () => {
+    if (!factSubject || !factPredicate.trim() || !factObject.trim()) return;
+    setFactBusy(true);
+    setError(null);
+    setNotice(null);
+    createFact({
+      subjectId: factSubject,
+      predicate: factPredicate.trim(),
+      objectValue: factObject.trim(),
+    })
+      .then((created) => {
+        setNotice(`事实已录入：${created.predicate} = ${created.objectValue}（#${created.id}）`);
+        setFactPredicate("");
+        setFactObject("");
+        setFactFormOpen(false);
+        return fetchFacts().then(setFacts);
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "录入事实失败");
+      })
+      .finally(() => setFactBusy(false));
   };
 
   return (
@@ -208,7 +236,61 @@ export default function WorldPanel() {
       </section>
 
       <section aria-label="事实" className="space-y-3">
-        <h2 className="text-base font-semibold text-content">最近事实</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-content">最近事实</h2>
+          <button
+            type="button"
+            onClick={() => {
+              setFactFormOpen((prev) => !prev);
+              setError(null);
+              setNotice(null);
+            }}
+            className="text-sm text-primary hover:underline"
+          >
+            {factFormOpen ? "收起表单" : "+ 录入事实"}
+          </button>
+        </div>
+
+        {factFormOpen && (
+          <div className="grid gap-3 rounded-xl border border-secondary/10 bg-card p-4 md:grid-cols-4">
+            <select
+              value={factSubject}
+              onChange={(e) => setFactSubject(e.target.value)}
+              className="rounded-lg border border-secondary/20 bg-base px-3 py-2 text-sm text-content"
+              aria-label="所属实体"
+            >
+              <option value="">选择实体…</option>
+              {entities?.map((entity) => (
+                <option key={entity.id} value={entity.id}>
+                  {entity.name}（#{entity.id}）
+                </option>
+              ))}
+            </select>
+            <input
+              value={factPredicate}
+              onChange={(e) => setFactPredicate(e.target.value)}
+              placeholder="谓词，如：certificate_expiry"
+              className="rounded-lg border border-secondary/20 bg-base px-3 py-2 text-sm text-content outline-none focus:border-primary"
+            />
+            <div className="flex gap-2 md:col-span-2">
+              <input
+                value={factObject}
+                onChange={(e) => setFactObject(e.target.value)}
+                placeholder="取值，如：2026-12-31"
+                className="min-w-0 flex-1 rounded-lg border border-secondary/20 bg-base px-3 py-2 text-sm text-content outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={onCreateFact}
+                disabled={factBusy || !factSubject || !factPredicate.trim() || !factObject.trim()}
+                className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              >
+                录入
+              </button>
+            </div>
+          </div>
+        )}
+
         {facts === null ? (
           <p className="text-sm text-muted">正在加载事实…</p>
         ) : facts.length === 0 ? (
