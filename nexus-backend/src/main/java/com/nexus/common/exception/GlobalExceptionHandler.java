@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * 全局异常处理。
@@ -44,6 +45,14 @@ public class GlobalExceptionHandler {
         // 请求体缺失/JSON 语法错误/编码错误都归为参数不合法，避免占用 90000 掩盖真实问题
         log.warn("请求体解析失败: {}", e.getMessage());
         return Result.fail(ResultCode.PARAM_INVALID, "请求体格式错误，请使用 UTF-8 编码的合法 JSON");
+    }
+
+    /** 无匹配路由：Spring 6.1+ 抛 NoResourceFoundException，应返回 404 而非 500。 */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleNotFound(NoResourceFoundException e) {
+        log.warn("请求的资源不存在: {}", e.getResourcePath());
+        return Result.fail(ResultCode.RESOURCE_NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)

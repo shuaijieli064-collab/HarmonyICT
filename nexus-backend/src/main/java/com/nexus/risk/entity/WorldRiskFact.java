@@ -16,7 +16,6 @@ public class WorldRiskFact {
     /** 复合主键之一：显式声明 INPUT 避免 MyBatis-Plus 启动时 "Can not find table primary key" 告警；
      * 关联行由调用方赋值，禁止自动生成。 */
     @TableId(value = "risk_id", type = IdType.INPUT)
-    @TableField("risk_id")
     private Long riskId;
 
     @TableField("fact_id")
