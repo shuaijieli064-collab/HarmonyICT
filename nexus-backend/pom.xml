@@ -18,6 +18,7 @@
     <description>NEXUS 个人世界模型后端服务（成员 A：后端与云架构）</description>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>21</java.version>
         <maven.compiler.release>21</maven.compiler.release>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
@@ -66,6 +67,17 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- 数据库版本迁移：生产用 Flyway 管理 PostgreSQL DDL；版本由 Spring Boot 3.3.5 parent 统一管理。
+             local/H2 测试环境通过 application.yml 的 spring.flyway.enabled=false 关闭，仍走 schema.sql -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
         <dependency>
@@ -122,6 +134,18 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Windows/JDK 25 下 stdout.encoding 跟随 native.encoding(GBK)，
+                         只设 file.encoding 不够：日志仍会乱码，需显式覆盖 stdout/stderr。
+                         disableClassPathURLCheck：Boot Manifest-JAR 含绝对路径，缺此项
+                         fork 阶段报 "different root"（见 surefire dump 提示）。
+                         注意：本环境 mvn 不展开 @{argLine} 占位符，故显式列出全部所需参数。 -->
+                    <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8</argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>

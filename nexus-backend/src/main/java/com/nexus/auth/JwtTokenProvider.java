@@ -23,6 +23,12 @@ public class JwtTokenProvider {
 
     public JwtTokenProvider(@Value("${nexus.jwt.secret}") String secret,
                             @Value("${nexus.jwt.expire-hours}") long expireHours) {
+        // 显式校验密钥长度：HS256 要求 >=256bit（32 字节）。prod 未配 NEXUS_JWT_SECRET 时
+        // 占位符注入会在构造前失败（fail-fast），此处兜住短密钥场景并给出可读错误。
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalArgumentException(
+                    "NEXUS_JWT_SECRET 必须至少 32 字节（HS256 要求 256bit），请配置足够长的随机密钥");
+        }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expireHours = expireHours;
     }

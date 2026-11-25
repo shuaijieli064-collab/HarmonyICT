@@ -133,15 +133,19 @@ class RiskAnalysisPipelineServiceTest {
     }
 
     @Test
-    void scanDropsRiskWithoutEntityId() {
+    void scanPersistsRiskWithoutEntityId() {
+        // 无实体归属的跨实体风险（如日程冲突）不再丢弃，按 (user, ruleCode, title) 幂等落库
         stubSources();
         when(riskAnalysisProvider.analyze(any())).thenReturn(new RiskAnalysisRequest.RiskAnalysisResult(
-                List.of(new RiskAnalysisRequest.DetectedRisk("other", "medium", "SCHEDULE_CONFLICT",
+                List.of(new RiskAnalysisRequest.DetectedRisk("other", "medium", "SCHEDULE_CONFLICT_DAY",
                         "日程冲突", "同日两项安排", null, List.of()))));
 
         pipeline.scanNow();
 
-        verify(riskMapper, never()).insert(any(WorldRisk.class));
+        ArgumentCaptor<WorldRisk> riskCaptor = ArgumentCaptor.forClass(WorldRisk.class);
+        verify(riskMapper).insert(riskCaptor.capture());
+        assertEquals("SCHEDULE_CONFLICT_DAY", riskCaptor.getValue().getRuleCode());
+        assertNull(riskCaptor.getValue().getEntityId());
         verify(riskFactMapper, never()).insert(any(WorldRiskFact.class));
     }
 

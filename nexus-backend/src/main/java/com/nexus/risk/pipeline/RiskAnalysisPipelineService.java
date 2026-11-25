@@ -132,16 +132,19 @@ public class RiskAnalysisPipelineService {
     }
 
     private int createIfAbsent(Long userId, RiskAnalysisRequest.DetectedRisk detected) {
-        if (detected.entityId() == null) {
-            // 幂等键依赖 entityId 定位实体，无实体归属的候选风险丢弃并记日志（可追溯性不足不入库）
-            log.warn("风险候选缺少 entityId，丢弃: ruleCode={} title={}", detected.ruleCode(), detected.title());
-            return 0;
-        }
-        Long exists = riskMapper.selectCount(new LambdaQueryWrapper<WorldRisk>()
+        // 幂等键：有实体归属用 (user, entityId, ruleCode)；无归属（如跨实体日程冲突）用
+        // (user, ruleCode, title) + entityId IS NULL。DDL 的 entity_id 可空，故不再丢弃候选，
+        // 否则这类风险（事件无 entityId）会永久丢失且日志告警被淹没。
+        LambdaQueryWrapper<WorldRisk> duplicate = new LambdaQueryWrapper<WorldRisk>()
                 .eq(WorldRisk::getUserId, userId)
-                .eq(WorldRisk::getEntityId, detected.entityId())
                 .eq(WorldRisk::getRuleCode, detected.ruleCode())
-                .ne(WorldRisk::getStatus, "resolved"));
+                .ne(WorldRisk::getStatus, "resolved");
+        if (detected.entityId() != null) {
+            duplicate.eq(WorldRisk::getEntityId, detected.entityId());
+        } else {
+            duplicate.isNull(WorldRisk::getEntityId).eq(WorldRisk::getTitle, detected.title());
+        }
+        Long exists = riskMapper.selectCount(duplicate);
         if (exists != null && exists > 0) {
             return 0;
         }

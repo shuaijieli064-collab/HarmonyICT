@@ -1,5 +1,6 @@
 "use client";
 
+import { createElement } from "react";
 import { RISK_LEVEL_MAP } from "@/lib/constants";
 import { riskLevelIconOf } from "@/lib/icons";
 import type { RiskItem } from "@/types";
@@ -9,7 +10,14 @@ import type { RiskItem } from "@/types";
  */
 export default function RiskSummaryCard({ risk }: { risk: RiskItem }) {
   const level = RISK_LEVEL_MAP[risk.level];
-  const LevelIcon = riskLevelIconOf(risk.level);
+  // createElement 内联：iconOf 返回静态 lucide 组件引用；避免把动态组件赋给局部大写变量
+  // 触发 react-hooks/static-components（该规则要求组件声明在渲染函数之外）。
+  const levelIcon = createElement(riskLevelIconOf(risk.level), {
+    size: 15,
+    strokeWidth: 2,
+    className: `shrink-0 ${level.text}`,
+    "aria-hidden": true,
+  } as const);
   const stripColor =
     risk.level === "high" ? "border-l-danger" : risk.level === "medium" ? "border-l-warning" : "border-l-success";
   return (
@@ -20,12 +28,7 @@ export default function RiskSummaryCard({ risk }: { risk: RiskItem }) {
     >
       <div className="flex items-center justify-between gap-2">
         <p className="flex min-w-0 items-center gap-2 text-sm font-semibold text-content">
-          <LevelIcon
-            size={15}
-            strokeWidth={2}
-            className={`shrink-0 ${level.text}`}
-            aria-hidden="true"
-          />
+          {levelIcon}
           <span className="truncate">{risk.title}</span>
         </p>
         <span className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs ${level.bg} ${level.text}`}>

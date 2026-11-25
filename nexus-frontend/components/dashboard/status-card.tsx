@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef } from "react";
+import { createElement, memo, useEffect, useRef } from "react";
 import { animate, useMotionValue } from "framer-motion";
 import { metricIconOf } from "@/lib/icons";
 import type { StatusMetric } from "@/types";
@@ -35,15 +35,16 @@ const MemoCountUp = memo(CountUpText);
 function StatusCardInner({ metric }: { metric: StatusMetric }) {
   const numeric = Number(metric.value);
   const isNumeric = Number.isFinite(numeric) && metric.value.trim() !== "";
-  const WatermarkIcon = metricIconOf(metric.id);
+  // createElement 内联静态 lucide 组件，避免触发 react-hooks/static-components
+  const watermark = createElement(metricIconOf(metric.id), {
+    size: 64,
+    strokeWidth: 1,
+    className: "pointer-events-none absolute -right-2 -top-2 text-content opacity-[0.06]",
+    "aria-hidden": true,
+  } as const);
   return (
     <div className="card-elevated shimmer relative overflow-hidden rounded-xl p-4">
-      <WatermarkIcon
-        size={64}
-        strokeWidth={1}
-        className="pointer-events-none absolute -right-2 -top-2 text-content opacity-[0.06]"
-        aria-hidden="true"
-      />
+      {watermark}
       <p className="text-sm text-secondary">{metric.label}</p>
       <p className="mt-1 text-[32px] font-bold leading-tight tabular-nums text-content">
         {isNumeric ? <MemoCountUp value={numeric} /> : metric.value}

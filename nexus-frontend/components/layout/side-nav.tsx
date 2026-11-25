@@ -21,11 +21,12 @@ export default function SideNav() {
   const loggedIn = useIsLoggedIn();
   const username = useUsername();
   const [unread, setUnread] = useState(0);
+  // 未登录时徽标直接派生为 0（不写 state，避免 effect 内同步 setState 的级联渲染告警）
+  const displayUnread = loggedIn ? unread : 0;
 
-  /** 未读徽标轮询：60s 与后端通知同步频率对齐；未登录静默置零 */
+  /** 未读徽标轮询：60s 与后端通知同步频率对齐；未登录不发起请求 */
   useEffect(() => {
     if (!loggedIn) {
-      setUnread(0);
       return;
     }
     let cancelled = false;
@@ -78,9 +79,9 @@ export default function SideNav() {
               )}
               <Icon size={16} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
               <span className="flex-1">{item.label}</span>
-              {item.href === "/notifications" && unread > 0 && (
+              {item.href === "/notifications" && displayUnread > 0 && (
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger/20 px-1.5 text-[11px] font-semibold text-danger">
-                  {unread > 99 ? "99+" : unread}
+                  {displayUnread > 99 ? "99+" : displayUnread}
                 </span>
               )}
             </Link>
