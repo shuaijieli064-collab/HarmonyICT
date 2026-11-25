@@ -15,13 +15,13 @@ import ThemeToggle from "@/components/layout/theme-toggle";
  */
 export default function MobileNav() {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  // openPath 记录「抽屉在哪个路由被打开」；isOpen 由当前路由派生，路由一变自动收起，
+  // 无需 effect 内同步 setState（React 19 lint 禁止，避免级联渲染）。
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  const open = openPath === pathname;
+  const toggleOpen = () => setOpenPath((prev) => (prev === pathname ? null : pathname));
+  const close = () => setOpenPath(null);
   const current = NAV_ITEMS.find((item) => item.href === pathname);
-
-  /** 路由变化自动收起抽屉 */
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   /** 抽屉展开时锁定背景滚动 */
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function MobileNav() {
           type="button"
           aria-label={open ? "关闭导航菜单" : "打开导航菜单"}
           aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
+          onClick={toggleOpen}
           className="flex h-11 w-11 items-center justify-center rounded-lg text-secondary transition-transform duration-200 active:scale-90 hover:text-content"
         >
           {open ? (
@@ -66,7 +66,7 @@ export default function MobileNav() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              onClick={() => setOpen(false)}
+              onClick={close}
               className="fixed inset-x-0 top-14 bottom-0 z-30 bg-overlay"
               aria-hidden="true"
             />
@@ -86,7 +86,7 @@ export default function MobileNav() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setOpen(false)}
+                    onClick={close}
                     className={cn(
                       "mb-1 flex items-center gap-2.5 rounded-lg px-4 py-3 text-sm",
                       active

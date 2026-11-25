@@ -49,7 +49,7 @@ ChatGPT 原方案（六大引擎 + 个人世界模型 + 完整 Agent）超出 3 
 华为云 OCR + MaaS 大模型抽取结构化信息
         ↓
 写入 RDS(PostgreSQL)：实体 / 事实 / 事件 / 来源
-Redis 缓存风险状态与任务状态
+Redis 记录 JWT 退出黑名单（风险与任务状态持久化于 PostgreSQL）
         ↓
 前端可视化：世界模型图谱 + 时间线 + 风险中心
         ↓

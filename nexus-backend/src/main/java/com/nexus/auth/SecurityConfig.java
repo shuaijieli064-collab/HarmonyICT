@@ -73,7 +73,9 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        // 收紧为实际需要的请求头：JWT 走 Authorization，JSON 走 Content-Type，
+        // Accept/Origin 为浏览器常规头；不再用 "*" 全放开（安全面收敛）。
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;

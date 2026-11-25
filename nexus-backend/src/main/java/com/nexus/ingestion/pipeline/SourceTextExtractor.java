@@ -15,18 +15,21 @@ import java.util.Set;
  * 分派规则（契约 4.1 七类型）：
  * - txt / md：直接按 UTF-8 读取全文；
  * - png / jpg / pdf：走 OCR Provider（B 实现，contentBase64 传输，本地联调友好）；
- * - docx / xlsx：解析器暂缺（B 阶段二遗留），抛 FILE_TYPE_UNSUPPORTED，编排层据此置 failed。
+ * - docx / xlsx：走 OfficeTextExtractor（JDK 内置 ZIP+XML 轻量提取正文/单元格文本，零新增依赖）。
  */
 @Component
 public class SourceTextExtractor {
 
     private static final Set<String> TEXT_EXTENSIONS = Set.of("txt", "md");
     private static final Set<String> OCR_EXTENSIONS = Set.of("png", "jpg", "jpeg", "pdf");
+    private static final Set<String> OFFICE_EXTENSIONS = Set.of("docx", "xlsx");
 
     private final OcrProvider ocrProvider;
+    private final OfficeTextExtractor officeExtractor;
 
-    public SourceTextExtractor(OcrProvider ocrProvider) {
+    public SourceTextExtractor(OcrProvider ocrProvider, OfficeTextExtractor officeExtractor) {
         this.ocrProvider = ocrProvider;
+        this.officeExtractor = officeExtractor;
     }
 
     /**
@@ -49,8 +52,14 @@ public class SourceTextExtractor {
                     null, java.util.Base64.getEncoder().encodeToString(content), ext));
             return new ExtractedText(result.fullText(), result.blocks(), result.confidence());
         }
+        if (OFFICE_EXTENSIONS.contains(ext)) {
+            String text = "docx".equals(ext)
+                    ? officeExtractor.extractDocx(content)
+                    : officeExtractor.extractXlsx(content);
+            return new ExtractedText(text, null, null);
+        }
         throw new BizException(ResultCode.FILE_TYPE_UNSUPPORTED,
-                "暂不支持 " + ext + " 类型的自动解析，请转换为 txt/md/pdf/png/jpg 后重试");
+                "暂不支持 " + ext + " 类型的自动解析，请转换为 txt/md/pdf/png/jpg/docx/xlsx 后重试");
     }
 
     /** 提取结果：全文 + 可空 OCR 分块（用于回填 page_count） */

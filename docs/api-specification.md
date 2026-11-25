@@ -275,3 +275,15 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 2. Mock 数据须放入独立 mock 文件并标注（规范 3.3），禁止散落在组件里。
 3. 时间字段一律按 ISO 8601 解析展示。
 4. 契约问题（字段缺失/语义不明）在群里提出，走 PR 修改本文档，不要自行假设字段。
+
+### 10.3 已实现端点补录（2026-11-25，来源 `docs/HANDOVER.md` 第 2 节）
+
+以下五个端点已实现并在 E2E 回归中实跑验证，此前未纳入上文分模块清单，现补录；均沿用 `Result<T>` 包裹与 JWT 认证：
+
+| 接口 | 说明 | 关键约定 |
+| --- | --- | --- |
+| `GET /api/v1/dashboard/health-score` | 健康度综合分 | 新鲜度 40 + 风险 40 + 任务 20 加权；驾驶舱环形仪表 |
+| `GET /api/v1/risks/trend?days=14` | 近 N 天风险等级分布趋势 | 数据源 `risk_snapshots` 每日快照（同日 upsert，缺失日期补 0）；`days` 默认 7、上限 30；情报中心 ECharts 折线 |
+| `GET /api/v1/facts/{id}/history` | 事实 supersede 链版本回溯 | 链式失效保留的全部版本按时间倒序；世界模型「历史」展开 |
+| `POST /api/v1/risks/scan` | 手动触发一次全量风险扫描 | 免等 60s 定时；返回 `data: { "created": <本轮新增风险数> }`；前端「立即扫描」 |
+| `POST /api/v1/risks/snapshots/demo-history?days=14` | 演示快照注入 | 仅 `local` profile（`DemoSnapshotController` 标注 `@Profile("local")`），**prod 无此端点**；`days` 默认 14、上限 30，幂等（已有快照日期跳过，不覆盖真实数据） |

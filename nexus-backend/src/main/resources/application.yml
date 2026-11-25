@@ -1,6 +1,9 @@
 spring:
   application:
     name: nexus-backend
+  # 默认关闭 Flyway：local/H2 仍由 db/schema.sql 初始化，避免与基线脚本冲突；仅 prod profile 开启
+  flyway:
+    enabled: false
   profiles:
     active: local
   jackson:
