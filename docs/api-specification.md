@@ -1,6 +1,6 @@
 # NEXUS · 统一 API 契约（成员 A 主笔，成员 C Review）
 
-> 状态：阶段一定稿候选。**本文档是成员 C 前端 Mock 开发的唯一依据**，字段必须按此实现。
+> 状态：阶段三集成分支现行契约（2026-11-25 补齐扩展 B 组 5 个端点）。**本文档是成员 C 前端 Mock 开发的唯一依据**，字段必须按此实现。
 > 变更须经 PR 合并到 develop 后再改代码（docs/00 整合约定）。
 
 ---
@@ -144,6 +144,7 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 | `POST /api/v1/facts` | 创建：`{ "subjectId", "predicate": "monthly_income", "objectValue": "12000", "sourceId"(可选), "validFrom"(可选), "validUntil"(可选，证书类事实到期时间，CERT_EXPIRY_30D 规则依赖), "valueType"(可选), "unit"(可选), "normalizedValue"(可选), "evidence"(可选), "confidence"(可选，0-1，抽取写入必传，人工录入缺省 1.0), "factStatus"(可选，confirmed/inferred/unverified，抽取写入必传，人工录入缺省 confirmed) }`。**P0 拍板（2026-11-22 联调）**：抽取写入须显式携带 confidence/factStatus 落库，不再服务端硬编码；带 sourceId 的重复抽取自动链式失效旧 active 行（upsert 语义，P1-5 拍板） |
 | `GET /api/v1/facts` | 分页：`page/pageSize/subjectId(可选)/predicate(可选)/sourceId(可选)/status(默认 active)`；`sourceId` 为抽取结果轮询入口（见 4.2） |
 | `GET /api/v1/facts/{id}` | 详情 |
+| `GET /api/v1/facts/{id}/history` | 事实历史版本：以 `(userId, subjectId, predicate)` 为链取全部版本（含 superseded/retracted），按创建时间倒序；`data` 为数组（非分页结构） |
 | `PUT /api/v1/facts/{id}` | 更新 objectValue：旧事实置 superseded，新事实落库（链式失效） |
 | `DELETE /api/v1/facts/{id}` | 撤回：status 置 retracted |
 
@@ -154,7 +155,14 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
   "sourceId": "1948...", "confidence": 0.92, "validFrom": "...", "validUntil": null, "status": "active",
   "factStatus": "confirmed", "createdAt": "...", "updatedAt": "..." }
 ```
-`confidence` 0-1；`status` 取值：`active / superseded / retracted`；`factStatus` 取值以 B 主笔的 `extraction-schema.md` 为准（暂定 `confirmed / inferred / unverified`）；`valueType` 取值：`string / number / date / boolean`。
+`confidence` 0-1；`status` 取值：`active / superseded / retracted`；`factStatus` 取值以 B 主笔的 `extraction-schema.md` 为准（`confirmed / inferred / unverified`）；`valueType` 取值：`string / number / date / datetime / duration / boolean`（与 `extraction-schema.md` 4.3 一致）。
+
+`GET /api/v1/facts/{id}/history`（扩展 B 组）响应 `data` 为同结构事实数组：
+```json
+[ { "id": "1948...", "predicate": "subscription_renewal_at", "objectValue": "2026-12-01", "status": "superseded" },
+  { "id": "1948...", "predicate": "subscription_renewal_at", "objectValue": "2026-12-15", "status": "active" } ]
+```
+越权或不存在返回业务码 `20102 事实不存在`（HTTP 200，无 data）。
 
 ### 5.3 事件
 
@@ -173,6 +181,9 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
 | `GET /api/v1/risks/{id}` | 详情（含相关事实快照） |
 | `PUT /api/v1/risks/{id}/acknowledge` | 确认风险：status → acknowledged |
 | `PUT /api/v1/risks/{id}/resolve` | 解决风险：status → resolved |
+| `POST /api/v1/risks/scan` | 手动触发一次全量规则扫描（同步返回），用于演示/联调跳过 60s 定时周期；风险仍只能由规则引擎产生，此接口不创建自定义风险 |
+| `GET /api/v1/risks/trend` | 近 N 天风险趋势（快照数据）：`days` 默认 7、≤0 回退 7、上限 30；缺失日期补 0，保证折线连续；按日期升序 |
+| `POST /api/v1/risks/snapshots/demo-history` | **仅 `local` profile 存在**（prod 不注册该 Bean，返回 404）：为当前用户合成近 N 天历史快照用于演示，`days` 默认 14、上限 30 |
 
 响应 `data`（风险）：
 ```json
@@ -181,6 +192,27 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
   "status": "open", "createdAt": "...", "updatedAt": "..." }
 ```
 `level`：`low / medium / high`（2026-11-22 由 mid 统一为 medium，前端按 medium 实现无需改动）；`status`：`open / acknowledged / resolved`。
+
+### 6.1 手动扫描与趋势（扩展 B 组）
+
+`POST /api/v1/risks/scan` 响应 `data`：
+```json
+{ "created": 2 }
+```
+`created` 为本轮新增风险条数；扫描同时按用户写入今日风险快照（同日 upsert）。
+
+`GET /api/v1/risks/trend?days=14` 响应 `data`（数组，非分页）：
+```json
+[ { "date": "2026-11-12", "openCount": 5, "highCount": 2, "mediumCount": 2, "lowCount": 1 },
+  { "date": "2026-11-13", "openCount": 4, "highCount": 1, "mediumCount": 2, "lowCount": 1 } ]
+```
+`date` 为 `yyyy-MM-dd`（UTC），各计数字段为当日 `open` 风险快照值。
+
+`POST /api/v1/risks/snapshots/demo-history?days=14` 响应 `data`（仅 local）：
+```json
+{ "days": 14, "inserted": 13, "skippedExisting": 0, "baseOpen": 1 }
+```
+幂等语义：已有快照的日期跳过，当日以真实扫描结果 upsert，不覆盖真实数据。云端 RDS 使用每日定时任务累积的真实快照，**不要调用此端点**；演示前改用 `scripts/seed-demo.ps1` 走真实上传→扫描链路。
 
 ## 7. 任务模块（阶段三实现）
 
@@ -261,6 +293,24 @@ Query：`page`、`pageSize`、`status`（可选：pending/parsing/parsed/failed�
   "level": "medium", "status": "open", "occurredAt": "..." }
 ```
 `type` 枚举：`risk / event / agent`；`level` 仅风险条目有值；`occurredAt` 取各来源业务时间（风险 created_at / 事件 occurred_at / Agent started_at）。
+
+### 9.3 世界模型健康度（扩展 B 组）
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/v1/dashboard/health-score` | 健康度综合分（0-100，纯规则可解释），前端驾驶舱环形仪表消费 |
+
+响应 `data`：
+```json
+{ "score": 78, "level": "good",
+  "dimensions": [
+    { "key": "freshness", "label": "数据新鲜度", "score": 40, "max": 40, "detail": "最近 2 天内有新事实沉淀" },
+    { "key": "risk", "label": "风险状况", "score": 28, "max": 40, "detail": "未解决风险 3 条（高 1 / 中 1 / 低 1）" },
+    { "key": "task", "label": "任务完成", "score": 10, "max": 20, "detail": "近 30 天任务完成 1/2" }
+  ] }
+```
+评分口径：数据新鲜度 40 分（7 天内满分、30 天外 0 分、中间线性衰减）+ 风险状况 40 分（high 扣 10 / medium 扣 5 / low 扣 2，下限 0）+ 任务完成 20 分（近 30 天 done 占比，无任务给 10 分基准）。
+`level` 枚举：`excellent`(≥85) / `good`(≥70) / `attention`(≥50) / `critical`(<50)；`dimensions` 顺序固定为 freshness → risk → task。
 
 ## 10. 附录
 
