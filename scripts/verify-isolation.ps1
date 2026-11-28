@@ -16,7 +16,8 @@ function Api($method, $path, $token, $body) {
     if ($body) { $args.Body = ($body | ConvertTo-Json -Depth 5) }
     try {
         $r = Invoke-RestMethod @args
-        if ($r.code -ne 0) { return @{ __status = 400; __error = "code=$($r.code) $($r.message)" } }
+        # 业务错误走 HTTP 200，保留真实状态码，不能伪造 400（否则掩盖协议层问题）
+        if ($r.code -ne 0) { return @{ __status = 200; __error = "code=$($r.code) $($r.message)" } }
         return $r.data
     } catch {
         $code = $null
@@ -71,12 +72,12 @@ if ($listA.Count -gt 0) {
     $fid = $listA[0].id
     W "[6] 交叉读: B 请求 A 的事实 id=$fid"
     $cross = Api "GET" "/facts/$fid" $tb $null
-    if ($cross.__status) { W "  结果: HTTP $($cross.__status) code=$($cross.__error) (预期 404 或业务码 20102 事实不存在 = 隔离生效)" }
+    if ($cross.__status) { W "  结果: HTTP $($cross.__status) $($cross.__error) (预期 404 或业务码 20102 事实不存在 = 隔离生效)" }
     else { W "  结果: 成功返回! (应被拒绝!) $($cross | ConvertTo-Json -Compress)" }
     W ""
-    W "[6b] 交叉写: B 尝试修改/删除 A 的事实"
-    $patch = Api "PATCH" "/facts/$fid" $tb @{ value = "篡改" }
-    if ($patch.__status) { W "  结果: HTTP $($patch.__status) code=$($patch.__error)" }
+    W "[6b] 交叉写: B 尝试修改 A 的事实（PUT /facts/{id}，契约 body 为 objectValue）"
+    $patch = Api "PUT" "/facts/$fid" $tb @{ objectValue = "篡改" }
+    if ($patch.__status) { W "  结果: HTTP $($patch.__status) $($patch.__error)" }
     else { W "  结果: 成功! (应被拒绝!)" }
     W ""
 } else {
@@ -93,11 +94,14 @@ if ($cross) {
     W "  B→A 交叉读隔离: $(if ($blocked) {'PASS (拒绝且不返回数据)'} else {'FAIL: ' + $cross.__status + ' ' + $cross.__error})"
 }
 if ($patch -and $patch.__status) {
-    $pblocked = ($patch.__status -eq 404 -or $patch.__status -eq 405 -or $patch.__status -eq 400) -or ($patch.__error -match "20102|不存在|90000")
-    W "  B→A 交叉写隔离: $(if ($pblocked) {'PASS (拒绝, 无数据变更)'} else {'REVIEW: HTTP ' + $patch.__status})"
+    # 拒绝可以是 403/404/405，或业务码 20102（事实不存在）/90001/90002；90000 是系统错误，绝不算通过
+    $pblocked = ($patch.__status -eq 403 -or $patch.__status -eq 404 -or $patch.__status -eq 405) -or
+                ($patch.__error -match "20102|不存在|90001|90002|不支持|方法")
+    if ($patch.__error -match "90000") { $pblocked = $false }
+    W "  B→A 交叉写隔离: $(if ($pblocked) {'PASS (拒绝, 无数据变更)'} else {'REVIEW: HTTP ' + $patch.__status + ' ' + $patch.__error})"
 }
 
-$dir = "D:\hong_meng\HarmonyICT\docs\evidence\isolation"
+$dir = Join-Path (Split-Path $PSScriptRoot -Parent) "docs\evidence\isolation"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 $out = Join-Path $dir "isolation-verify-local.txt"
 $log.ToString() | Out-File -FilePath $out -Encoding utf8
